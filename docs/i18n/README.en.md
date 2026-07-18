@@ -35,7 +35,7 @@ SKU Foundry is a browser-based SPA for e-commerce brands, product designers, and
 | **Multi-Vendor AI** | Doubao / Qwen / Hunyuan / Kimi / MiMo / Yi / Baidu + custom endpoints |
 | **2 Generation Modes** | Native Fusion (direct multi-image composite) & Dual Stage (Vision analysis → T2I) |
 | **Interactive Canvas** | Drag-to-position, scroll-to-scale, WYSIWYG logo placement |
-| **Prompt Library** | 26 categorized templates (fabric, hard goods, tech, luxury, aesthetics) |
+| **Prompt Library** | 26 bilingual templates (Chinese/English toggle, default Chinese) across 5 categories |
 | **AI Asset Generation** | Generate logos & product images from text prompts |
 | **Glassmorphism Dark UI** | Consistent dark theme, responsive layout, mobile-friendly |
 | **Intro Animation** | Playful Box Bot character animation on startup |
@@ -152,14 +152,7 @@ Click **Generate Mockup** — AI composites the logos onto the product. View and
 - This is a client-side SPA — all data stays in your browser locally
 - i18n: UI is currently in Chinese, code comments in English
 
----
 
-## Optimization Docs
-
-- `PROMPT_LIBRARY_UI_OPTIMIZATION.md` — Prompt library UI animations, interactions, and accessibility
-- `OPTIMIZATION_PLAN.md` — Phased optimization roadmap
-
----
 
 ## License
 
