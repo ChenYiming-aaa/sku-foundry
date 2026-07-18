@@ -3,7 +3,7 @@
   <img src="../../public/logo.svg" width="80" height="80" alt="SKU Foundry Logo" />
   <h1>SKU Foundry</h1>
   <p><strong>AI-Powered Product Mockup Generator</strong></p>
-  <p>Upload logos & product images — let multi-vendor AI composite them with realistic lighting, shadows, and perspective warping.</p>
+  <p>Upload logos & product images — let Qwen / Doubao native fusion composite them with realistic lighting, shadows, and perspective warping.</p>
 
   <p>
     <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&style=flat-square" alt="React 19" />
@@ -21,9 +21,9 @@
 
 ## Overview
 
-SKU Foundry is a browser-based SPA for e-commerce brands, product designers, and marketing teams. It provides a complete workflow from **asset upload → visual design → AI compositing → export**, supporting both **Native Multi-Image Fusion** and **Dual-Stage** generation modes across multiple Chinese AI vendors.
+SKU Foundry is a browser-based SPA for e-commerce brands, product designers, and marketing teams. It provides a complete workflow from **asset upload → visual design → AI compositing → export**, using native multi-image fusion from **Qwen** and **Doubao**.
 
-> Built for the Chinese AI ecosystem — supports Alibaba Qwen, ByteDance Doubao, Tencent Hunyuan, Moonshot Kimi, Xiaomi MiMo, Baidu Qianfan, Yi, and custom OpenAI-compatible endpoints.
+> v1.1.0 focuses on native multi-image fusion — no dual-stage pairing, no intermediate text generation.
 
 ---
 
@@ -32,11 +32,11 @@ SKU Foundry is a browser-based SPA for e-commerce brands, product designers, and
 | Feature | Description |
 |---------|-------------|
 | **End-to-End Workflow** | Upload → Studio design → Gallery download in 3 steps |
-| **Multi-Vendor AI** | Doubao / Qwen / Hunyuan / Kimi / MiMo / Yi / Baidu + custom endpoints |
-| **2 Generation Modes** | Native Fusion (direct multi-image composite) & Dual Stage (Vision analysis → T2I) |
+| **AI Fusion** | Doubao / Qwen native multi-image fusion (direct composite, no text loss) |
+| **AI Asset Generation** | Generate logos & product images from text prompts |
 | **Interactive Canvas** | Drag-to-position, scroll-to-scale, WYSIWYG logo placement |
 | **Prompt Library** | 26 bilingual templates (Chinese/English toggle, default Chinese) across 5 categories |
-| **AI Asset Generation** | Generate logos & product images from text prompts |
+| **Connection Test** | One-click API test in AI Settings with latency display |
 | **Glassmorphism Dark UI** | Consistent dark theme, responsive layout, mobile-friendly |
 | **Intro Animation** | Playful Box Bot character animation on startup |
 
@@ -73,7 +73,7 @@ src/
 │   ├── Button.tsx            # Reusable button component
 │   └── FileUploader.tsx      # Drag-and-drop file upload component
 ├── services/
-│   └── aiService.ts          # AI API layer (multi-provider routing, fusion, generation)
+│   └── aiService.ts          # AI API layer (Qwen/Doubao routing, fusion, generation)
 └── data/
     └── prompts.ts            # Prompt library (5 categories, 26 templates)
 ```
@@ -88,27 +88,14 @@ Click **AI Settings** in the top-right corner to configure API keys and endpoint
 
 | Provider | Model | Capabilities |
 |----------|-------|-------------|
-| ByteDance Doubao | Seedream 5.0 Pro | Native Fusion, Vision, Image Gen |
-| Alibaba Qwen | Qwen-Image 2.0 Pro | Native Fusion, Vision, Image Gen |
-| Tencent Hunyuan | Hunyuan 3.0 | Vision, Image Gen (async) |
-| Moonshot Kimi | Kimi K3 | Vision only |
-| Xiaomi MiMo | MiMo v2.5 | Vision only |
-| Yi (Lingyiwanwu) | Yi-Vision | Vision only |
-| Baidu Qianfan | ERNIE 4.5 Turbo VL | Vision only |
-| Custom | Any OpenAI-compatible | Configurable |
+| ByteDance Doubao | Seedream 5.0 Pro | Native Fusion, Text-to-Image |
+| Alibaba Qwen | Qwen-Image 2.0 Pro | Native Fusion, Text-to-Image |
 
-### Generation Modes
+### Generation Flow
 
-| Mode | Description |
-|------|-------------|
-| **Native Fusion** | Input multiple images + text instruction → direct composite output, no information loss |
-| **Dual Stage** | Vision model analyzes layout → separate T2I model renders the final image |
+v1.1.0 uses **Native Multi-Image Fusion** exclusively: product image + logo image + text prompt are sent directly to the AI model, producing the composited mockup in one step — no intermediate text description, zero information loss.
 
-### Billing Modes
-
-- **PAYG** — Pay-as-you-go
-- **Token Plan** — Pre-purchased token packages
-- **Coding Plan** — Developer subscription plans
+> Switch providers in the AI Settings modal. Use the built-in **Test Connection** button to verify your configuration.
 
 ---
 
@@ -116,18 +103,22 @@ Click **AI Settings** in the top-right corner to configure API keys and endpoint
 
 ### 1. Upload Assets
 
-On the **Assets** page, upload product base images and logos (drag & drop or click). You can also generate assets via AI by describing what you need.
+On the **Assets** page, upload product base images and logos (drag & drop or click). You can also generate assets via AI (configure AI first).
 
-### 2. Design in Studio
+### 2. Configure AI
+
+Click **AI Settings** (top-right), select a provider, fill in API Key, Base URL, Model name, then click **Test Connection** to verify.
+
+### 3. Design in Studio
 
 - Select a product image as the base layer
 - Click logos to add them to the canvas
 - Drag to reposition, scroll to resize
 - Choose from the prompt library or write custom instructions
 
-### 3. Generate & Export
+### 4. Generate & Export
 
-Click **Generate Mockup** — AI composites the logos onto the product. View and download results in the **Gallery**.
+Click **Generate** — AI composites the logos onto the product. View and download results in the **Gallery**.
 
 ---
 

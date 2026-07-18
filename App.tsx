@@ -183,11 +183,12 @@ const NavButton = ({ icon, label, active, onClick, number }: { icon: React.React
   </button>
 );
 
-const WorkflowStepper = ({ currentView, onViewChange }: { currentView: AppView, onViewChange: (view: AppView) => void }) => {
+const WorkflowStepper = ({ currentView, onViewChange, lang }: { currentView: AppView, onViewChange: (view: AppView) => void, lang: 'zh' | 'en' }) => {
+  const tl = (zh: string, en: string) => lang === 'zh' ? zh : en;
   const steps = [
-    { id: 'assets', label: '上传素材', number: 1 },
-    { id: 'studio', label: '设计 Mockup', number: 2 },
-    { id: 'gallery', label: '下载成品', number: 3 },
+    { id: 'assets', label: tl('上传素材', 'Upload Assets'), number: 1 },
+    { id: 'studio', label: tl('设计 Mockup', 'Design Mockup'), number: 2 },
+    { id: 'gallery', label: tl('下载成品', 'Download Results'), number: 3 },
   ];
 
   const viewOrder = ['assets', 'studio', 'gallery'];
@@ -256,7 +257,8 @@ const AssetSection = ({
   onRemove,
   validateApiKey,
   onApiError,
-  apiSettings
+  apiSettings,
+  lang
 }: { 
   title: string, 
   icon: React.ReactNode, 
@@ -266,8 +268,10 @@ const AssetSection = ({
   onRemove: (id: string) => void,
   validateApiKey: () => Promise<boolean>,
   onApiError: (e: any) => void,
-  apiSettings: ApiSettings
+  apiSettings: ApiSettings,
+  lang: 'zh' | 'en'
 }) => {
+  const tl = (zh: string, en: string) => lang === 'zh' ? zh : en;
   const [mode, setMode] = useState<'upload' | 'generate'>('upload');
   const [genPrompt, setGenPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -302,7 +306,7 @@ const AssetSection = ({
     <div className="glass-panel p-6 rounded-2xl h-full flex flex-col">
       <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold flex items-center gap-2">{icon} {title}</h2>
-          <span className="text-xs bg-zinc-800 px-2 py-1 rounded text-zinc-400">{assets.length} 个</span>
+          <span className="text-xs bg-zinc-800 px-2 py-1 rounded text-zinc-400">{assets.length} {tl('个', 'items')}</span>
       </div>
 
       {/* Asset Grid */}
@@ -317,7 +321,7 @@ const AssetSection = ({
           ))}
           {assets.length === 0 && (
             <div className="col-span-2 sm:col-span-3 flex flex-col items-center justify-center h-32 text-zinc-500 border border-dashed border-zinc-800 rounded-lg">
-              <p className="text-sm">暂无{type === 'product' ? '产品' : 'Logo'}</p>
+              <p className="text-sm">{tl('暂无', 'No')} {type === 'product' ? tl('产品', 'Products') : tl('Logo', 'Logos')}</p>
             </div>
           )}
       </div>
@@ -329,13 +333,13 @@ const AssetSection = ({
              onClick={() => setMode('upload')}
              className={`text-sm font-medium pb-1 border-b-2 transition-colors ${mode === 'upload' ? 'border-indigo-500 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
            >
-              上传
+              {tl('上传', 'Upload')}
             </button>
             <button 
               onClick={() => setMode('generate')}
               className={`text-sm font-medium pb-1 border-b-2 transition-colors ${mode === 'generate' ? 'border-indigo-500 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
             >
-              AI 生成
+              {tl('AI 生成', 'AI Generate')}
            </button>
         </div>
 
@@ -358,7 +362,7 @@ const AssetSection = ({
               <textarea 
                 value={genPrompt}
                 onChange={(e) => setGenPrompt(e.target.value)}
-                placeholder={`描述你想创建的${type === 'product' ? '产品' : 'Logo'}...`}
+                placeholder={`${tl('描述你想创建的', 'Describe the')} ${type === 'product' ? tl('产品', 'product') : tl('Logo', 'logo')}...`}
                 className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-3 text-base text-white focus:ring-2 focus:ring-indigo-500 resize-none h-24 placeholder:text-zinc-600"
               />
               <Button 
@@ -368,7 +372,7 @@ const AssetSection = ({
                 className="w-full"
                 icon={<Sparkles size={16} />}
               >
-                生成{type === 'product' ? '产品' : 'Logo'}
+                {tl('生成', 'Generate')} {type === 'product' ? tl('产品', 'Product') : tl('Logo', 'Logo')}
               </Button>
            </div>
         )}
@@ -382,6 +386,7 @@ const AssetSection = ({
 
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
+  const [showV110Notice, setShowV110Notice] = useState(false);
   const [view, setView] = useState<AppView>('dashboard');
   const [assets, setAssets] = useState<Asset[]>([]);
   const [generatedMockups, setGeneratedMockups] = useState<GeneratedMockup[]>([]);
@@ -395,13 +400,22 @@ export default function App() {
   const [showPromptLib, setShowPromptLib] = useState(false);
   const [promptLibCategory, setPromptLibCategory] = useState('fabric');
   const [promptLang, setPromptLang] = useState<'zh' | 'en'>('zh');
+  const [lang, setLang] = useState<'zh' | 'en'>('zh');
+  const [showHelp, setShowHelp] = useState(false);
+  const t = (zh: string, en: string) => lang === 'zh' ? zh : en;
 
   useEffect(() => {
-    if (!showPromptLib) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowPromptLib(false); };
+    setPromptLang(lang);
+  }, [lang]);
+
+  useEffect(() => {
+    if (!showPromptLib && !showHelp) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setShowPromptLib(false); setShowHelp(false); }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [showPromptLib]);
+  }, [showPromptLib, showHelp]);
   const [loading, setLoading] = useState<LoadingState>({ isGenerating: false, message: '' });
 
   // Custom toast notification state
@@ -415,42 +429,32 @@ export default function App() {
     }, 4500);
   };
 
-  // Custom API Multi-provider settings
   const [apiSettings, setApiSettings] = useState<ApiSettings>(() => {
-    const saved = localStorage.getItem('sku_foundry_api_settings');
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem('sku_foundry_api_settings');
+      if (saved) {
         const parsed = JSON.parse(saved);
-        const merged = { ...DEFAULT_SETTINGS, ...parsed };
-        merged.providers = { ...DEFAULT_SETTINGS.providers, ...parsed.providers };
-        if (parsed.customConfigs) {
-          merged.customConfigs = { ...DEFAULT_SETTINGS.customConfigs, ...parsed.customConfigs };
+        if (parsed && parsed.runtimeSettings && parsed.runtimeSettings.currentProvider) {
+          return parsed as ApiSettings;
         }
-        return merged;
-      } catch (e) {
-        return DEFAULT_SETTINGS;
       }
-    }
-    return DEFAULT_SETTINGS;
+    } catch {}
+    return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const saveApiSettings = (newSettings: ApiSettings) => {
     setApiSettings(newSettings);
     localStorage.setItem('sku_foundry_api_settings', JSON.stringify(newSettings));
-    const activeProv = newSettings.runtimeSettings.analysisProvider;
-    showToast(`AI 设置已更新：当前供应商为 ${newSettings.providers[activeProv]?.name || activeProv}`, "success");
+    const prov = newSettings.runtimeSettings.currentProvider;
+    showToast(`${t("AI 设置已更新：当前供应商为", "AI Settings updated: current provider is")} ${newSettings.providers[prov]?.name || prov}`, "success");
   };
 
-  // Multi-provider validation wrapper
   const validateApiSettings = async (): Promise<boolean> => {
-    const activeProv = apiSettings.runtimeSettings.analysisProvider;
-    const config = apiSettings.providers[activeProv];
-
+    const prov = apiSettings.runtimeSettings.currentProvider;
+    const config = apiSettings.providers[prov];
     if (!config || !config.apiKey) {
-      showToast(`提示：${config?.name || activeProv} 未填写 API Key，如请求失败请在 AI 设置中配置`, "warning");
-    } else {
-      showToast(`正在将生成请求路由至 ${config.name}`, "success");
+      showToast(`${t("提示：", "Warning:")}${config?.name || prov} ${t("未填写 API Key，如请求失败请在 AI 设置中配置", "API Key is not set. Configure it in AI Settings if requests fail")}`, "warning");
     }
     return true;
   };
@@ -458,7 +462,7 @@ export default function App() {
   // API Error Handling Logic
   const handleApiError = (error: any) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    alert(`生成失败：${errorMessage}`);
+    alert(`${t("生成失败：", "Generation failed:")}${errorMessage}`);
   };
 
   // State for Dragging
@@ -593,7 +597,7 @@ export default function App() {
     
     const product = assets.find(a => a.id === selectedProductId);
     if (!product) {
-        alert("未找到所选产品，请重新选择");
+        alert(t("未找到所选产品，请重新选择", "Selected product not found, please reselect"));
         // Deselect the invalid ID so the UI updates
         setSelectedProductId(null);
         return;
@@ -606,7 +610,7 @@ export default function App() {
     }).filter(Boolean) as { asset: Asset, placement: PlacedLayer }[];
 
     if (layers.length === 0) {
-         alert("画布上无有效 Logo，请先添加");
+         alert(t("画布上无有效 Logo，请先添加", "No valid logo on canvas, please add one first"));
          return;
     }
 
@@ -617,7 +621,7 @@ export default function App() {
 
     const currentPrompt = prompt;
 
-    setLoading({ isGenerating: true, message: '正在分析合成几何结构...' });
+    setLoading({ isGenerating: true, message: t('正在分析合成几何结构...', 'Analyzing composition geometry...') });
     try {
       const resultImage = await generateMockup(product, layers, currentPrompt, apiSettings);
       
@@ -640,8 +644,14 @@ export default function App() {
     }
   };
 
+  useEffect(() => {
+    if (!showV110Notice) return;
+    const timer = setTimeout(() => setShowV110Notice(false), 3000);
+    return () => clearTimeout(timer);
+  }, [showV110Notice]);
+
   if (showIntro) {
-    return <IntroSequence onComplete={() => setShowIntro(false)} />;
+    return <IntroSequence onComplete={() => { setShowIntro(false); setShowV110Notice(true); }} />;
   }
 
   return (
@@ -668,6 +678,38 @@ export default function App() {
         </div>
       )}
 
+      {/* v1.1.0 Notice Banner */}
+      {showV110Notice && (
+        <div className="fixed inset-0 z-[180] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowV110Notice(false)} />
+          <div className="relative bg-zinc-900 border border-zinc-700/60 rounded-2xl text-white text-center py-8 px-10 max-w-sm w-full shadow-2xl animate-[scaleFadeIn_0.35s_ease-out_forwards]">
+            <button
+              onClick={() => setShowV110Notice(false)}
+              className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              aria-label="Close"
+            >
+              <X size={16} strokeWidth={2} />
+            </button>
+
+            <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-indigo-500/25 to-purple-500/25 border border-indigo-500/20 flex items-center justify-center">
+              <Sparkles size={24} className="text-indigo-400" strokeWidth={1.5} />
+            </div>
+
+            <h3 className="text-base font-semibold text-white mb-2">
+              {t("v1.1.0 精简稳定版", "v1.1.0 Stable Lite")}
+            </h3>
+
+            <p className="text-sm text-zinc-400 leading-relaxed mb-6">
+              {t("本版本专注于 Qwen 和 Doubao 原生多图融合。旧版配置已重置，请在 AI 设置中重新配置。", "Focused on Qwen & Doubao native fusion. Old config has been reset, please reconfigure in AI Settings.")}
+            </p>
+
+            <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full animate-[shrink_3s_linear_forwards]" />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar Navigation (Desktop) */}
       <aside className="w-64 border-r border-zinc-800 bg-zinc-950/50 hidden md:flex flex-col">
         <div className="h-16 border-b border-zinc-800 flex items-center px-6">
@@ -678,27 +720,27 @@ export default function App() {
         <div className="p-4 space-y-2 flex-1">
           <NavButton 
             icon={<Layout size={18} />} 
-            label="控制台" 
+            label={t("控制台", "Dashboard")} 
             active={view === 'dashboard'} 
             onClick={() => setView('dashboard')} 
           />
           <NavButton 
             icon={<Box size={18} />} 
-            label="素材库" 
+            label={t("素材库", "Assets")} 
             active={view === 'assets'} 
             number={1}
             onClick={() => setView('assets')} 
           />
           <NavButton 
             icon={<Wand2 size={18} />} 
-            label="设计室" 
+            label={t("设计室", "Studio")} 
             active={view === 'studio'} 
             number={2}
             onClick={() => setView('studio')} 
           />
           <NavButton 
             icon={<ImageIcon size={18} />} 
-            label="作品集" 
+            label={t("作品集", "Gallery")} 
             active={view === 'gallery'} 
             number={3}
             onClick={() => setView('gallery')} 
@@ -707,7 +749,7 @@ export default function App() {
 
         <div className="p-4 border-t border-zinc-800">
           <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-800 text-center">
-             <Button size="sm" variant="outline" className="w-full text-xs">帮助文档</Button>
+             <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => setShowHelp(true)}>{t("帮助文档", "Help")}</Button>
           </div>
         </div>
       </aside>
@@ -729,27 +771,27 @@ export default function App() {
           <div className="space-y-2">
             <NavButton 
               icon={<Layout size={18} />} 
-              label="控制台" 
+              label={t("控制台", "Dashboard")} 
               active={view === 'dashboard'} 
               onClick={() => { setView('dashboard'); setIsMobileMenuOpen(false); }} 
             />
             <NavButton 
               icon={<Box size={18} />} 
-              label="素材库" 
+              label={t("素材库", "Assets")} 
               active={view === 'assets'} 
               number={1}
               onClick={() => { setView('assets'); setIsMobileMenuOpen(false); }} 
             />
             <NavButton 
               icon={<Wand2 size={18} />} 
-              label="设计室" 
+              label={t("设计室", "Studio")} 
               active={view === 'studio'} 
               number={2}
               onClick={() => { setView('studio'); setIsMobileMenuOpen(false); }} 
             />
             <NavButton 
               icon={<ImageIcon size={18} />} 
-              label="作品集" 
+              label={t("作品集", "Gallery")} 
               active={view === 'gallery'} 
               number={3}
               onClick={() => { setView('gallery'); setIsMobileMenuOpen(false); }} 
@@ -757,7 +799,10 @@ export default function App() {
           </div>
           
           <div className="mt-auto pb-8 border-t border-zinc-800 pt-6">
-              <p className="text-xs text-zinc-500 text-center mb-4">SKU FOUNDRY Mobile v1.0</p>
+              <button onClick={() => { setShowHelp(true); setIsMobileMenuOpen(false); }} className="w-full text-center py-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+                {t("帮助文档", "Help")}
+              </button>
+              <p className="text-xs text-zinc-500 text-center mt-2">SKU FOUNDRY Mobile v1.0</p>
           </div>
         </div>
       )}
@@ -781,7 +826,7 @@ export default function App() {
             <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden rounded-lg">
               <img 
                 src={selectedMockup.imageUrl} 
-                alt="全尺寸预览" 
+                alt={t("全尺寸预览", "Full-size preview")} 
                 className="max-w-full max-h-[85vh] object-contain shadow-2xl" 
               />
             </div>
@@ -789,7 +834,7 @@ export default function App() {
             {/* Caption / Actions */}
             <div className="mt-4 bg-zinc-900/90 backdrop-blur border border-zinc-700 px-6 py-3 rounded-full flex items-center gap-4">
                <p className="text-sm text-zinc-300 max-w-[200px] md:max-w-md truncate">
-                  {selectedMockup.prompt || "生成的作品"}
+                  {selectedMockup.prompt || t("生成的作品", "Generated work")}
                 </p>
                 <div className="h-4 w-px bg-zinc-700"></div>
                 <a 
@@ -798,7 +843,7 @@ export default function App() {
                   className="text-indigo-400 hover:text-indigo-300 text-sm font-medium flex items-center gap-2"
                 >
                   <Download size={16} />
-                  下载
+                  {t("下载", "Download")}
                 </a>
             </div>
           </div>
@@ -810,15 +855,31 @@ export default function App() {
         {/* Top Bar */}
         <div className="sticky top-0 z-40 h-16 bg-black/80 backdrop-blur-md border-b border-zinc-800 flex items-center justify-between px-8">
            <div className="text-sm text-zinc-400 breadcrumbs">
-               <span className="opacity-50">应用</span> 
+               <span className="opacity-50">{t("应用", "App")}</span> 
                <span className="mx-2">/</span> 
-               <span className="text-white capitalize">{view === 'dashboard' ? '控制台' : view === 'assets' ? '素材库' : view === 'studio' ? '设计室' : '作品集'}</span>
+               <span className="text-white capitalize">{view === 'dashboard' ? t("控制台", "Dashboard") : view === 'assets' ? t("素材库", "Assets") : view === 'studio' ? t("设计室", "Studio") : t("作品集", "Gallery")}</span>
            </div>
            <div className="flex items-center gap-3">
               <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-mono text-zinc-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                 API: {apiSettings.providers[apiSettings.runtimeSettings.analysisProvider]?.name || '未配置'}
+                 {apiSettings.providers[apiSettings.runtimeSettings.currentProvider]?.name || t("未配置", "Not configured")}
               </span>
+              <div className="flex gap-1 bg-zinc-900 rounded-lg p-0.5 border border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => setLang('zh')}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${lang === 'zh' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'}`}
+                >
+                  中文
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLang('en')}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${lang === 'en' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'}`}
+                >
+                  EN
+                </button>
+              </div>
               <Button 
                 size="sm" 
                 variant="outline" 
@@ -826,9 +887,8 @@ export default function App() {
                 onClick={() => setIsSettingsOpen(true)}
                 className="hover:border-indigo-500 transition-colors"
               >
-                AI 设置
+                {t("AI 设置", "AI Settings")}
               </Button>
-              <Button size="sm" variant="ghost" icon={<Sparkles size={16}/>}>Credits: ∞</Button>
            </div>
         </div>
 
@@ -838,49 +898,49 @@ export default function App() {
            {view === 'dashboard' && (
               <div className="animate-fade-in space-y-8">
                  <div className="text-center py-12">
-                     <h1 className="text-4xl md:text-6xl font-black mb-6 text-white">
-                        创建逼真的 <br/>
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">商品 Mockup</span>
-                     </h1>
-                     <p className="text-zinc-400 text-lg max-w-2xl mx-auto mb-10">
-                        上传你的 Logo 和产品图，让 AI 以真实的光影、阴影和扭曲效果完美融合。
-                     </p>
-                     <Button size="lg" onClick={() => setView('assets')} icon={<ArrowRight size={20} />}>
-                        开始创作
+                  <h1 className="text-4xl md:text-6xl font-black mb-6 text-white">
+                     {t("创建逼真的", "Create Realistic")} <br/>
+                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">{t("商品 Mockup", "Product Mockups")}</span>
+                  </h1>
+                  <p className="text-zinc-400 text-lg max-w-2xl mx-auto mb-10">
+                     {t("上传你的 Logo 和产品图，让 AI 以真实的光影、阴影和扭曲效果完美融合。", "Upload your logo and product photo, and let AI blend them perfectly with realistic lighting, shadows, and distortion.")}
+                  </p>
+                  <Button size="lg" onClick={() => setView('assets')} icon={<ArrowRight size={20} />}>
+                     {t("开始创作", "Get Started")}
                      </Button>
                  </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                     {[
-                        { icon: <Box className="text-indigo-400" />, title: '素材管理', desc: '管理 Logo 和产品素材' },
-                        { icon: <Wand2 className="text-purple-400" />, title: 'AI 合成', desc: '智能融合与表面映射' },
-                        { icon: <Download className="text-pink-400" />, title: '高清导出', desc: '生产级视觉成品' }
-                     ].map((feat, i) => (
-                       <div key={i} className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-indigo-500/30 transition-colors">
-                          <div className="mb-4 p-3 bg-zinc-900 w-fit rounded-lg">{feat.icon}</div>
-                          <h3 className="text-xl font-bold mb-2">{feat.title}</h3>
-                          <p className="text-zinc-500">{feat.desc}</p>
-                       </div>
-                    ))}
-                 </div>
-                 
-                 <footer className="mt-20 pt-8 border-t border-zinc-900 text-center">
-                     <p className="text-zinc-500 text-xs max-w-2xl mx-auto leading-relaxed">
-                        使用本应用即表示您确认拥有所上传内容的合法权利。请勿生成侵犯他人知识产权或隐私权的内容。使用本生成式 AI 服务需遵守禁止使用政策。
-                     </p>
-                 </footer>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {[
+                         { icon: <Box className="text-indigo-400" />, title: t("素材管理", "Asset Management"), desc: t("管理 Logo 和产品素材", "Manage logos and product assets") },
+                         { icon: <Wand2 className="text-purple-400" />, title: t("AI 合成", "AI Compositing"), desc: t("智能融合与表面映射", "Smart blending & surface mapping") },
+                         { icon: <Download className="text-pink-400" />, title: t("高清导出", "HD Export"), desc: t("生产级视觉成品", "Production-ready visuals") }
+                      ].map((feat, i) => (
+                        <div key={i} className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:border-indigo-500/30 transition-colors">
+                           <div className="mb-4 p-3 bg-zinc-900 w-fit rounded-lg">{feat.icon}</div>
+                           <h3 className="text-xl font-bold mb-2">{feat.title}</h3>
+                           <p className="text-zinc-500">{feat.desc}</p>
+                        </div>
+                     ))}
+                  </div>
+                  
+                  <footer className="mt-20 pt-8 border-t border-zinc-900 text-center">
+                      <p className="text-zinc-500 text-xs max-w-2xl mx-auto leading-relaxed">
+                         {t("使用本应用即表示您确认拥有所上传内容的合法权利。请勿生成侵犯他人知识产权或隐私权的内容。使用本生成式 AI 服务需遵守禁止使用政策。", "By using this app, you confirm that you have the legal rights to the uploaded content. Do not generate content that infringes on others' intellectual property or privacy rights. Use of this generative AI service must comply with the acceptable use policy.")}
+                      </p>
+                  </footer>
               </div>
            )}
 
            {/* --- ASSETS VIEW --- */}
            {view === 'assets' && (
               <div className="animate-fade-in">
-                <WorkflowStepper currentView="assets" onViewChange={setView} />
+                <WorkflowStepper currentView="assets" onViewChange={setView} lang={lang} />
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* Products Section */}
                   <AssetSection 
-                    title="产品" 
+                    title={t("产品", "Product")} 
                     icon={<Box size={20} />}
                     type="product"
                     assets={assets.filter(a => a.type === 'product')}
@@ -889,11 +949,12 @@ export default function App() {
                     validateApiKey={validateApiSettings}
                     onApiError={handleApiError}
                     apiSettings={apiSettings}
+                    lang={lang}
                   />
 
                   {/* Logos Section */}
                   <AssetSection 
-                    title="Logo 与图形" 
+                    title={t("Logo 与图形", "Logos & Graphics")} 
                     icon={<Layers size={20} />}
                     type="logo"
                     assets={assets.filter(a => a.type === 'logo')}
@@ -902,12 +963,13 @@ export default function App() {
                     validateApiKey={validateApiSettings}
                     onApiError={handleApiError}
                     apiSettings={apiSettings}
+                    lang={lang}
                   />
                 </div>
 
                 <div className="mt-8 flex justify-end">
                     <Button onClick={() => setView('studio')} disabled={assets.length < 2} icon={<ArrowRight size={16} />}>
-                       前往设计室
+                       {t("前往设计室", "Go to Studio")}
                     </Button>
                 </div>
               </div>
@@ -919,87 +981,87 @@ export default function App() {
                 {/* Left Controls (Bottom on Mobile) */}
                 <div className="w-full lg:w-80 flex flex-col gap-6 glass-panel p-6 rounded-2xl overflow-y-auto flex-1 lg:flex-none">
                    <div>
-                       <h3 className="text-sm font-bold text-zinc-300 uppercase tracking-wider mb-4">1. 选择产品</h3>
-                      <div className="grid grid-cols-3 gap-2">
-                         {assets.filter(a => a.type === 'product').map(a => (
-                            <div 
-                               key={a.id} 
-                               onClick={() => setSelectedProductId(selectedProductId === a.id ? null : a.id)}
-                               className={`aspect-square rounded-lg border-2 cursor-pointer p-1 transition-all ${selectedProductId === a.id ? 'border-indigo-500 bg-indigo-500/20' : 'border-zinc-700 hover:border-zinc-500 bg-zinc-900'}`}
-                            >
-                               <img src={a.data} className="w-full h-full object-contain" alt={a.name} />
-                            </div>
-                         ))}
-                          {assets.filter(a => a.type === 'product').length === 0 && <p className="text-xs text-zinc-400 col-span-3">暂无产品</p>}
-                      </div>
-                   </div>
-
-                   <div>
-                      <div className="flex items-center justify-between mb-4">
-                         <h3 className="text-sm font-bold text-zinc-300 uppercase tracking-wider">2. 添加 Logo</h3>
-                        {placedLogos.length > 0 && (
-                            <span className="text-xs text-indigo-400">{placedLogos.length} 在画布上</span>
-                        )}
-                      </div>
-                      <p className="text-xs text-zinc-400 mb-2">点击添加，拖拽移动，滚轮缩放</p>
-                      <div className="grid grid-cols-3 gap-2">
-                         {assets.filter(a => a.type === 'logo').map(a => (
-                            <div 
-                               key={a.id} 
-                               onClick={() => addLogoToCanvas(a.id)}
-                               className={`relative aspect-square rounded-lg border-2 cursor-pointer p-1 transition-all border-zinc-700 hover:border-zinc-500 bg-zinc-900`}
-                            >
-                               <img src={a.data} className="w-full h-full object-contain" alt={a.name} />
-                               {/* Count badge */}
-                               {placedLogos.filter(l => l.assetId === a.id).length > 0 && (
-                                   <div className="absolute -top-2 -right-2 w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center text-[10px] font-bold border border-zinc-900">
-                                       {placedLogos.filter(l => l.assetId === a.id).length}
-                                   </div>
-                               )}
-                            </div>
-                         ))}
-                          {assets.filter(a => a.type === 'logo').length === 0 && <p className="text-xs text-zinc-400 col-span-3">暂无 Logo</p>}
-                      </div>
-                   </div>
-
-                   <div>
-                        <div className="flex items-center justify-between mb-3">
-                           <h3 className="text-sm font-bold text-zinc-300 uppercase tracking-wider">3. 生成指令</h3>
-                          <button
-                            type="button"
-                            onClick={() => setShowPromptLib(true)}
-                            className="group flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 border bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 hover:bg-zinc-900"
-                          >
-                            <Sparkles className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200" />
-                            <span>提示词库</span>
-                          </button>
-                        </div>
-
-                       <textarea 
-                          className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-3 text-base text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none h-24"
-                          placeholder="例如：将 Logo 嵌入到面料纹理中..."
-                          value={prompt}
-                          onChange={(e) => setPrompt(e.target.value)}
-                       />
+                        <h3 className="text-sm font-bold text-zinc-300 uppercase tracking-wider mb-4">1. {t("选择产品", "Select Product")}</h3>
+                       <div className="grid grid-cols-3 gap-2">
+                          {assets.filter(a => a.type === 'product').map(a => (
+                             <div 
+                                key={a.id} 
+                                onClick={() => setSelectedProductId(selectedProductId === a.id ? null : a.id)}
+                                className={`aspect-square rounded-lg border-2 cursor-pointer p-1 transition-all ${selectedProductId === a.id ? 'border-indigo-500 bg-indigo-500/20' : 'border-zinc-700 hover:border-zinc-500 bg-zinc-900'}`}
+                             >
+                                <img src={a.data} className="w-full h-full object-contain" alt={a.name} />
+                             </div>
+                          ))}
+                           {assets.filter(a => a.type === 'product').length === 0 && <p className="text-xs text-zinc-400 col-span-3">{t("暂无产品", "No products")}</p>}
+                       </div>
                     </div>
 
-                   <div className="mt-auto space-y-1">
-                     <Button 
-                       onClick={handleGenerate} 
-                       isLoading={loading.isGenerating} 
-                       disabled={!selectedProductId || placedLogos.length === 0} 
-                       size="lg" 
-                       className="w-full"
-                       icon={<Wand2 size={18} />}
-                    >
-                       生成 Mockup
-                    </Button>
-                    {(!selectedProductId || placedLogos.length === 0) && (
-                      <p className="text-[10px] text-zinc-500 text-center">
-                        {!selectedProductId ? '请先选择产品' : '请添加 Logo 到画布'}
-                      </p>
-                    )}
-                   </div>
+                    <div>
+                       <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-sm font-bold text-zinc-300 uppercase tracking-wider">2. {t("添加 Logo", "Add Logo")}</h3>
+                         {placedLogos.length > 0 && (
+                             <span className="text-xs text-indigo-400">{placedLogos.length} {t("在画布上", "on canvas")}</span>
+                         )}
+                       </div>
+                       <p className="text-xs text-zinc-400 mb-2">{t("点击添加，拖拽移动，滚轮缩放", "Click to add, drag to move, scroll to zoom")}</p>
+                       <div className="grid grid-cols-3 gap-2">
+                          {assets.filter(a => a.type === 'logo').map(a => (
+                             <div 
+                                key={a.id} 
+                                onClick={() => addLogoToCanvas(a.id)}
+                                className={`relative aspect-square rounded-lg border-2 cursor-pointer p-1 transition-all border-zinc-700 hover:border-zinc-500 bg-zinc-900`}
+                             >
+                                <img src={a.data} className="w-full h-full object-contain" alt={a.name} />
+                                {/* Count badge */}
+                                {placedLogos.filter(l => l.assetId === a.id).length > 0 && (
+                                    <div className="absolute -top-2 -right-2 w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center text-[10px] font-bold border border-zinc-900">
+                                        {placedLogos.filter(l => l.assetId === a.id).length}
+                                    </div>
+                                )}
+                             </div>
+                          ))}
+                           {assets.filter(a => a.type === 'logo').length === 0 && <p className="text-xs text-zinc-400 col-span-3">{t("暂无 Logo", "No logos")}</p>}
+                       </div>
+                    </div>
+
+                    <div>
+                         <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-bold text-zinc-300 uppercase tracking-wider">3. {t("生成指令", "Prompt")}</h3>
+                           <button
+                             type="button"
+                             onClick={() => setShowPromptLib(true)}
+                             className="group flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 border bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 hover:bg-zinc-900"
+                           >
+                             <Sparkles className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200" />
+                             <span>{t("提示词库", "Prompt Library")}</span>
+                           </button>
+                         </div>
+
+                        <textarea 
+                           className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-3 text-base text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none h-24"
+                           placeholder={t("例如：将 Logo 嵌入到面料纹理中...", "e.g. Embed the logo into the fabric texture...")}
+                           value={prompt}
+                           onChange={(e) => setPrompt(e.target.value)}
+                        />
+                     </div>
+
+                    <div className="mt-auto space-y-1">
+                      <Button 
+                        onClick={handleGenerate} 
+                        isLoading={loading.isGenerating} 
+                        disabled={!selectedProductId || placedLogos.length === 0} 
+                        size="lg" 
+                        className="w-full"
+                        icon={<Wand2 size={18} />}
+                     >
+                        {t("生成 Mockup", "Generate Mockup")}
+                     </Button>
+                     {(!selectedProductId || placedLogos.length === 0) && (
+                       <p className="text-[10px] text-zinc-500 text-center">
+                         {!selectedProductId ? t("请先选择产品", "Select a product first") : t("请添加 Logo 到画布", "Add a logo to the canvas")}
+                       </p>
+                     )}
+                    </div>
                 </div>
 
                 {/* Right Preview - Canvas (Top on Mobile) */}
@@ -1071,9 +1133,9 @@ export default function App() {
                       </div>
                    ) : (
                       <div className="text-center text-zinc-600">
-                         <Shirt size={64} className="mx-auto mb-4 opacity-20" />
-                          <p>选择一个产品开始设计</p>
-                      </div>
+                          <Shirt size={64} className="mx-auto mb-4 opacity-20" />
+                           <p>{t("选择一个产品开始设计", "Select a product to start designing")}</p>
+                       </div>
                    )}
                 </div>
              </div>
@@ -1082,50 +1144,50 @@ export default function App() {
            {/* --- GALLERY VIEW --- */}
            {view === 'gallery' && (
               <div className="animate-fade-in">
-                 <div className="flex items-center justify-between mb-8">
-                     <h2 className="text-2xl font-bold">生成的作品</h2>
-                     <Button variant="outline" onClick={() => setView('studio')} icon={<Plus size={16}/>}>新建</Button>
-                 </div>
+               <div className="flex items-center justify-between mb-8">
+                      <h2 className="text-2xl font-bold">{t("生成的作品", "Generated Works")}</h2>
+                      <Button variant="outline" onClick={() => setView('studio')} icon={<Plus size={16}/>}>{t("新建", "New")}</Button>
+                  </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {generatedMockups.map(mockup => (
-                       <div key={mockup.id} className="group glass-panel rounded-xl overflow-hidden">
-                          <div className="aspect-square bg-zinc-900 relative overflow-hidden">
-                             <img src={mockup.imageUrl} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt="Mockup" />
-                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                <Button 
-                                  size="sm" 
-                                  variant="secondary" 
-                                  icon={<Maximize size={16}/>}
-                                  onClick={() => setSelectedMockup(mockup)}
-                                >
-                                   预览
-                                 </Button>
-                                 <a href={mockup.imageUrl} download={`mockup-${mockup.id}.png`}>
-                                   <Button size="sm" variant="primary" icon={<Download size={16}/>}>下载</Button>
-                                </a>
-                             </div>
-                          </div>
-                          <div className="p-4">
-                             <p className="text-xs text-zinc-500 mb-1">{new Date(mockup.createdAt).toLocaleDateString()}</p>
-                              <p className="text-sm text-zinc-300 line-clamp-2">{mockup.prompt || "自动生成的作品"}</p>
-                              {mockup.layers && mockup.layers.length > 0 && (
-                                  <div className="mt-2 flex gap-1">
-                                      <span className="text-xs px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400">{mockup.layers.length} 个 Logo</span>
-                                  </div>
-                              )}
-                          </div>
-                       </div>
-                    ))}
-                    {generatedMockups.length === 0 && (
-                       <div className="col-span-full py-20 text-center glass-panel rounded-xl">
-                          <ImageIcon size={48} className="mx-auto mb-4 text-zinc-700" />
-                           <h3 className="text-lg font-medium text-zinc-300">暂无作品</h3>
-                           <p className="text-zinc-500 mb-6">在设计室中创建你的第一个作品</p>
-                           <Button onClick={() => setView('studio')}>前往设计室</Button>
-                       </div>
-                    )}
-                 </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                     {generatedMockups.map(mockup => (
+                        <div key={mockup.id} className="group glass-panel rounded-xl overflow-hidden">
+                           <div className="aspect-square bg-zinc-900 relative overflow-hidden">
+                              <img src={mockup.imageUrl} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt="Mockup" />
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                 <Button 
+                                   size="sm" 
+                                   variant="secondary" 
+                                   icon={<Maximize size={16}/>}
+                                   onClick={() => setSelectedMockup(mockup)}
+                                 >
+                                    {t("预览", "Preview")}
+                                  </Button>
+                                  <a href={mockup.imageUrl} download={`mockup-${mockup.id}.png`}>
+                                    <Button size="sm" variant="primary" icon={<Download size={16}/>}>{t("下载", "Download")}</Button>
+                                 </a>
+                              </div>
+                           </div>
+                           <div className="p-4">
+                              <p className="text-xs text-zinc-500 mb-1">{new Date(mockup.createdAt).toLocaleDateString()}</p>
+                               <p className="text-sm text-zinc-300 line-clamp-2">{mockup.prompt || t("自动生成的作品", "Auto-generated work")}</p>
+                               {mockup.layers && mockup.layers.length > 0 && (
+                                   <div className="mt-2 flex gap-1">
+                                       <span className="text-xs px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-400">{mockup.layers.length} {t("个 Logo", "Logos")}</span>
+                                   </div>
+                               )}
+                           </div>
+                        </div>
+                     ))}
+                     {generatedMockups.length === 0 && (
+                        <div className="col-span-full py-20 text-center glass-panel rounded-xl">
+                           <ImageIcon size={48} className="mx-auto mb-4 text-zinc-700" />
+                            <h3 className="text-lg font-medium text-zinc-300">{t("暂无作品", "No Works Yet")}</h3>
+                            <p className="text-zinc-500 mb-6">{t("在设计室中创建你的第一个作品", "Create your first work in Studio")}</p>
+                            <Button onClick={() => setView('studio')}>{t("前往设计室", "Go to Studio")}</Button>
+                        </div>
+                     )}
+                  </div>
               </div>
            )}
         </div>
@@ -1153,21 +1215,21 @@ export default function App() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/60 shrink-0">
               <div className="flex items-center gap-3">
                 <Sparkles className="w-5 h-5 text-indigo-400" />
-                <h2 className="text-base font-bold text-white tracking-tight">提示词库</h2>
+                <h2 className="text-base font-bold text-white tracking-tight">{t("提示词库", "Prompt Library")}</h2>
                 <span className="text-[10px] text-zinc-600 font-mono tracking-wider bg-zinc-900 px-2 py-0.5 rounded-full">
-                  {promptLibrary.length} 模板
+                  {promptLibrary.length} {t("模板", "Templates")}
                 </span>
                 <div className="flex gap-1 ml-2 bg-zinc-900 rounded-lg p-0.5 border border-zinc-800">
                   <button
                     type="button"
-                    onClick={() => setPromptLang('zh')}
+                    onClick={() => { setPromptLang('zh'); setLang('zh'); }}
                     className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${promptLang === 'zh' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'}`}
                   >
                     中文
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPromptLang('en')}
+                    onClick={() => { setPromptLang('en'); setLang('en'); }}
                     className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${promptLang === 'en' ? 'bg-indigo-600 text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'}`}
                   >
                     EN
@@ -1204,7 +1266,7 @@ export default function App() {
             {/* Prompt Cards */}
             <div key={promptLibCategory} className="flex-1 overflow-y-auto p-4 space-y-2.5 scrollbar-hide animate-fade-in">
               {promptLibrary.filter(p => p.category === promptLibCategory).length === 0 && (
-                <p className="text-xs text-zinc-600 text-center py-12">该分类暂无模板</p>
+                <p className="text-xs text-zinc-600 text-center py-12">{t("该分类暂无模板", "No templates in this category")}</p>
               )}
               {promptLibrary.filter(p => p.category === promptLibCategory).map((tpl, idx) => {
                 const accentColor = promptLibCategory === 'fabric' ? 'border-l-indigo-500/60'
@@ -1240,6 +1302,130 @@ export default function App() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Help Document Modal */}
+      {showHelp && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[150] p-4 overflow-y-auto animate-fade-in"
+          onClick={() => setShowHelp(false)}
+        >
+          <div
+            className="bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden max-h-[85vh] flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/60 shrink-0">
+              <div className="flex items-center gap-3">
+                <h2 className="text-base font-bold text-white tracking-tight">{t("帮助文档", "Help Documentation")}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowHelp(false)}
+                className="p-2 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4" strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+              {/* One: Quick Start */}
+              <section>
+                <h3 className="text-sm font-bold text-indigo-400 uppercase tracking-wider mb-3">
+                  {t("一、快速开始", "I. Quick Start")}
+                </h3>
+                <ol className="space-y-2 text-xs text-zinc-300 leading-relaxed list-decimal list-inside">
+                  <li>{t("上传素材 — 在\"素材库\"页面上传 Logo/图案 和产品照片", "Upload Assets — Upload your logo/pattern and product photo on the Assets page")}</li>
+                  <li>{t("配置 AI — 点击右上角\"AI 设置\"，填入供应商的 API Key 等信息", "Configure AI — Click \"AI Settings\" (top-right), fill in provider API Key and model info")}</li>
+                  <li>{t("设计 Mockup — 进入\"设计室\"，放置素材并输入提示词", "Design Mockup — Enter Studio, place assets and enter a prompt")}</li>
+                  <li>{t("生成作品 — 点击\"生成产品\"，AI 将自动融合 Logo 与产品图", "Generate — Click Generate, AI will automatically blend the logo with the product image")}</li>
+                  <li>{t("下载成品 — 在\"作品集\"页面查看和下载生成的作品", "Download — View and download generated works on the Gallery page")}</li>
+                </ol>
+              </section>
+
+              {/* Two: Prompt Library */}
+              <section>
+                <h3 className="text-sm font-bold text-indigo-400 uppercase tracking-wider mb-3">
+                  {t("二、提示词库", "II. Prompt Library")}
+                </h3>
+                <ul className="space-y-1.5 text-xs text-zinc-300 leading-relaxed list-disc list-inside">
+                  <li>{t("在设计室右侧点击\"提示词库\"按钮", "Click \"Prompt Library\" button on the right side of Studio")}</li>
+                  <li>{t("内置 26 条专业模板，覆盖布料、硬质表面、电子产品、奢侈品、场景环境 5 大类", "26 built-in templates across Fabric, Hard Surface, Electronics, Luxury, and Scene categories")}</li>
+                  <li>{t("支持中英文切换", "Supports Chinese/English switching")}</li>
+                  <li>{t("点击模板自动填充到提示词输入框", "Click a template to auto-fill the prompt input")}</li>
+                </ul>
+              </section>
+
+              {/* Three: AI Settings */}
+              <section>
+                <h3 className="text-sm font-bold text-indigo-400 uppercase tracking-wider mb-3">
+                  {t("三、AI 设置", "III. AI Settings")}
+                </h3>
+                <ul className="space-y-1.5 text-xs text-zinc-300 leading-relaxed list-disc list-inside">
+                  <li>{t("点击右上角\"AI 设置\"按钮", "Click \"AI Settings\" button in the top-right corner")}</li>
+                  <li>{t("v1.1.0 支持两家供应商：字节豆包（Seedream 5.0）和 阿里 Qwen-Image 2.0", "v1.1.0 supports two providers: ByteDance Doubao (Seedream 5.0) and Alibaba Qwen-Image 2.0")}</li>
+                  <li>{t("两者都支持原生多图融合（直接传入多张图 + prompt 生成一张融合图）", "Both support native multi-image fusion (multiple images + prompt → one composited output)")}</li>
+                  <li>{t("也支持文生图（T2I）资产生成", "Also support text-to-image (T2I) asset generation")}</li>
+                  <li>{t("填入 API Key、Base URL、生图 Base URL、模型名后可用\"测试\"按钮验证连接", "Fill in API Key, Base URL, Image Gen Base URL, Model name, then use \"Test\" button to verify")}</li>
+                </ul>
+              </section>
+
+              {/* Four: Gallery Management */}
+              <section>
+                <h3 className="text-sm font-bold text-indigo-400 uppercase tracking-wider mb-3">
+                  {t("四、作品管理", "IV. Gallery Management")}
+                </h3>
+                <ul className="space-y-1.5 text-xs text-zinc-300 leading-relaxed list-disc list-inside">
+                  <li>{t("生成的 Mockup 保存在\"作品集\"页面", "Generated mockups are saved on the Gallery page")}</li>
+                  <li>{t("支持单张下载", "Single image download supported")}</li>
+                  <li>{t("作品数据存储在浏览器本地", "Data stored in browser local storage")}</li>
+                </ul>
+              </section>
+
+              {/* Five: FAQ */}
+              <section>
+                <h3 className="text-sm font-bold text-indigo-400 uppercase tracking-wider mb-3">
+                  {t("五、常见问题", "V. FAQ")}
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-bold text-zinc-200 mb-1">
+                      {t("生成失败？", "Generation failed?")}
+                    </p>
+                    <p className="text-xs text-zinc-400">
+                      {t("检查 AI 设置中的 API Key 是否正确，以及所选模型是否可用", "Check if the API Key in AI Settings is correct and the selected model is available")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-zinc-200 mb-1">
+                      {t("图片效果不佳？", "Poor image quality?")}
+                    </p>
+                    <p className="text-xs text-zinc-400">
+                      {t("尝试使用更详细的提示词，或更换产品照片", "Try using more detailed prompts or changing the product photo")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-zinc-200 mb-1">
+                      {t("如何清除所有数据？", "How to clear all data?")}
+                    </p>
+                    <p className="text-xs text-zinc-400">
+                      {t("在浏览器开发者工具的 Application → Local Storage 中清除站点数据", "Clear site data in Browser DevTools → Application → Local Storage")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-zinc-200 mb-1">
+                      {t("v1.1.0 变了什么？", "What changed in v1.1.0?")}
+                    </p>
+                    <p className="text-xs text-zinc-400">
+                      {t("精简为仅支持 Qwen 和 Doubao 两家供应商的本地多图融合，移除了双阶段配对模式和其他 6 家供应商。旧版配置已自动重置。", "Streamlined to only Qwen & Doubao native fusion, removed dual-stage pairing and 6 other providers. Old config auto-reset.")}
+                    </p>
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
         </div>
