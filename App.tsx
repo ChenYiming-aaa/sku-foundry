@@ -386,7 +386,7 @@ const AssetSection = ({
 
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
-  const [showV110Notice, setShowV110Notice] = useState(false);
+  const [showV120Notice, setShowV110Notice] = useState(false);
   const [view, setView] = useState<AppView>('dashboard');
   const [assets, setAssets] = useState<Asset[]>([]);
   const [generatedMockups, setGeneratedMockups] = useState<GeneratedMockup[]>([]);
@@ -667,10 +667,10 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!showV110Notice) return;
+    if (!showV120Notice) return;
     const timer = setTimeout(() => setShowV110Notice(false), 3000);
     return () => clearTimeout(timer);
-  }, [showV110Notice]);
+  }, [showV120Notice]);
 
   // Convert container-relative (x%, y%) to product-relative percentages.
   //
@@ -733,7 +733,7 @@ export default function App() {
       )}
 
       {/* v1.2.0 Notice Banner */}
-      {showV110Notice && (
+      {showV120Notice && (
         <div className="fixed inset-0 z-[180] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60" onClick={() => setShowV110Notice(false)} />
           <div className="relative bg-zinc-900 border border-zinc-700/60 rounded-2xl text-white text-center py-8 px-10 max-w-sm w-full shadow-2xl animate-[scaleFadeIn_0.35s_ease-out_forwards]">

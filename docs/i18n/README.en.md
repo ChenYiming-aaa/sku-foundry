@@ -81,7 +81,7 @@ npm run preview   # Preview production build
 ├── index.css                 # Global styles
 ├── index.html                # Entry HTML (Tailwind CDN + importmap)
 ├── types.ts                  # TypeScript type definitions
-├── netlify.toml              # Netlify deploy config (build / publish / SPA fallback)
+
 ├── components/
 │   ├── ApiSettingsModal.tsx  # AI provider configuration modal
 │   ├── Button.tsx            # Reusable button component
@@ -150,17 +150,7 @@ Click **Generate** — AI composites the logos onto the product. View and downlo
 
 ---
 
-## Deployment
 
-Deployed via [Netlify](https://www.netlify.com/); build config lives in `netlify.toml` at the repo root:
-
-- **Build command**: `npm run build`
-- **Publish directory**: `dist`
-- **SPA routing**: `/*` falls back to `index.html`
-
-Once linked to the GitHub repo (`ChenYiming-aaa/sku-foundry`), every `git push` triggers a redeploy.
-
----
 
 ## Notes
 
