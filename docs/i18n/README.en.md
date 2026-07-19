@@ -13,6 +13,10 @@
     <img src="https://img.shields.io/badge/Tailwind-latest-06B6D4?logo=tailwindcss&style=flat-square" alt="Tailwind CSS" />
   </p>
 
+  <p>
+    <a href="https://logo-mix-product.netlify.app/"><img src="https://img.shields.io/badge/Demo-logo--mix--product.netlify.app-00C7B7?style=flat-square" alt="Live Demo" /></a>
+  </p>
+
   <p><a href="../../README.md">简体中文</a> · <b>English</b></p>
   <br/>
 </div>
@@ -24,6 +28,16 @@
 SKU Foundry is a browser-based SPA for e-commerce brands, product designers, and marketing teams. It provides a complete workflow from **asset upload → visual design → AI compositing → export**, using native multi-image fusion from **Qwen** and **Doubao**.
 
 > v1.2.0 focuses on native multi-image fusion with precision canvas positioning — DOM-based coordinate measurement ensures accurate logo placement.
+
+---
+
+## Live Demo
+
+The project is live — open it directly in your browser:
+
+**🌐 https://logo-mix-product.netlify.app/**
+
+> AI fusion requires configuring a provider API Key in **AI Settings** (top-right) first. Asset upload and canvas design work out of the box.
 
 ---
 
@@ -62,12 +76,12 @@ npm run preview   # Preview production build
 ## Project Structure
 
 ```
-src/
 ├── App.tsx                   # Main app (Dashboard/Assets/Studio/Gallery + Intro animation)
 ├── index.tsx                 # React entry point
 ├── index.css                 # Global styles
 ├── index.html                # Entry HTML (Tailwind CDN + importmap)
 ├── types.ts                  # TypeScript type definitions
+├── netlify.toml              # Netlify deploy config (build / publish / SPA fallback)
 ├── components/
 │   ├── ApiSettingsModal.tsx  # AI provider configuration modal
 │   ├── Button.tsx            # Reusable button component
@@ -133,6 +147,18 @@ Click **Generate** — AI composites the logos onto the product. View and downlo
 | [Lucide React](https://lucide.dev/) | Icon library |
 | [ESM CDN](https://esm.sh/) | Runtime dependency loading |
 | [Google Fonts](https://fonts.google.com/) | Inter + JetBrains Mono |
+
+---
+
+## Deployment
+
+Deployed via [Netlify](https://www.netlify.com/); build config lives in `netlify.toml` at the repo root:
+
+- **Build command**: `npm run build`
+- **Publish directory**: `dist`
+- **SPA routing**: `/*` falls back to `index.html`
+
+Once linked to the GitHub repo (`ChenYiming-aaa/sku-foundry`), every `git push` triggers a redeploy.
 
 ---
 
