@@ -23,7 +23,7 @@
 
 SKU Foundry is a browser-based SPA for e-commerce brands, product designers, and marketing teams. It provides a complete workflow from **asset upload → visual design → AI compositing → export**, using native multi-image fusion from **Qwen** and **Doubao**.
 
-> v1.1.0 focuses on native multi-image fusion — no dual-stage pairing, no intermediate text generation.
+> v1.2.0 focuses on native multi-image fusion with precision canvas positioning — DOM-based coordinate measurement ensures accurate logo placement.
 
 ---
 
@@ -93,7 +93,7 @@ Click **AI Settings** in the top-right corner to configure API keys and endpoint
 
 ### Generation Flow
 
-v1.1.0 uses **Native Multi-Image Fusion** exclusively: product image + logo image + text prompt are sent directly to the AI model, producing the composited mockup in one step — no intermediate text description, zero information loss.
+v1.2.0 uses **Native Multi-Image Fusion** exclusively: product image + logo image + text prompt are sent directly to the AI model, producing the composited mockup in one step — no intermediate text description, zero information loss. The canvas coordinate system uses DOM-based measurement to ensure pixel-perfect position transfer.
 
 > Switch providers in the AI Settings modal. Use the built-in **Test Connection** button to verify your configuration.
 

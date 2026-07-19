@@ -286,7 +286,7 @@ const AssetSection = ({
     try {
       const b64 = await generateAsset(genPrompt, type, apiSettings);
       onAdd({
-        id: Math.random().toString(36).substring(7),
+        id: crypto.randomUUID(),
         type,
         name: `AI Generated ${type}`,
         data: b64,
@@ -348,7 +348,7 @@ const AssetSection = ({
               const reader = new FileReader();
               reader.onload = (e) => {
                 onAdd({
-                  id: Math.random().toString(36).substring(7),
+                  id: crypto.randomUUID(),
                   type,
                   name: f.name,
                   data: e.target?.result as string,
@@ -462,11 +462,12 @@ export default function App() {
   // API Error Handling Logic
   const handleApiError = (error: any) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    alert(`${t("生成失败：", "Generation failed:")}${errorMessage}`);
+    showToast(`${t("生成失败：", "Generation failed:")}${errorMessage}`, "warning");
   };
 
   // State for Dragging
   const canvasRef = useRef<HTMLDivElement>(null);
+  const productImgRef = useRef<HTMLImageElement>(null);
   const [draggedItem, setDraggedItem] = useState<{ uid: string, startX: number, startY: number, initX: number, initY: number } | null>(null);
 
   // Demo assets on load
@@ -482,7 +483,7 @@ export default function App() {
   const addLogoToCanvas = (assetId: string) => {
     // Add new instance of logo to canvas at center
     const newLayer: PlacedLayer = {
-      uid: Math.random().toString(36).substr(2, 9),
+      uid: crypto.randomUUID(),
       assetId,
       x: 50,
       y: 50,
@@ -589,21 +590,17 @@ export default function App() {
 
 
   const handleGenerate = async () => {
-    // We don't return early for empty selections here so we can give better user feedback
     if (!selectedProductId && placedLogos.length === 0) {
-        // Although button is disabled, safety check
         return;
     }
     
     const product = assets.find(a => a.id === selectedProductId);
     if (!product) {
         alert(t("未找到所选产品，请重新选择", "Selected product not found, please reselect"));
-        // Deselect the invalid ID so the UI updates
         setSelectedProductId(null);
         return;
     }
 
-    // Prepare all layers
     const layers = placedLogos.map(layer => {
         const asset = assets.find(a => a.id === layer.assetId);
         return asset ? { asset, placement: layer } : null;
@@ -614,23 +611,48 @@ export default function App() {
          return;
     }
 
-    // Check API Key before proceeding
     if (!(await validateApiSettings())) {
       return;
+    }
+
+    // Convert container-relative positions to product-relative positions.
+    // Measures the actual rendered <img> DOM element to determine where the product
+    // image content sits within the container after CSS object-contain.
+    // This handles all CSS complexities (padding, border-box, parent layout) automatically.
+    const productImgEl = productImgRef.current;
+    let adjustedLayers: { asset: Asset; placement: PlacedLayer }[];
+
+    if (productImgEl && productImgEl.naturalWidth > 0) {
+      const containerEl = canvasRef.current;
+      if (containerEl) {
+        adjustedLayers = layers.map(({ asset, placement }) => {
+          const prodPos = containerToProductPct(placement.x, placement.y, productImgEl);
+          return {
+            asset,
+            placement: { ...placement, x: prodPos.x, y: prodPos.y },
+          };
+        });
+      } else {
+        adjustedLayers = layers;
+      }
+    } else {
+      // Fallback: image not rendered yet, send container-relative coords as-is
+      adjustedLayers = layers;
     }
 
     const currentPrompt = prompt;
 
     setLoading({ isGenerating: true, message: t('正在分析合成几何结构...', 'Analyzing composition geometry...') });
     try {
-      const resultImage = await generateMockup(product, layers, currentPrompt, apiSettings);
+      // Send with product-relative coordinates
+      const resultImage = await generateMockup(product, adjustedLayers, currentPrompt, apiSettings);
       
       const newMockup: GeneratedMockup = {
-        id: Math.random().toString(36).substring(7),
+        id: crypto.randomUUID(),
         imageUrl: resultImage,
         prompt: currentPrompt,
         createdAt: Date.now(),
-        layers: placedLogos, // Save the layout
+        layers: placedLogos, // Save the ORIGINAL layout (container-relative) for re-editing
         productId: selectedProductId
       };
       
@@ -649,6 +671,38 @@ export default function App() {
     const timer = setTimeout(() => setShowV110Notice(false), 3000);
     return () => clearTimeout(timer);
   }, [showV110Notice]);
+
+  // Convert container-relative (x%, y%) to product-relative percentages.
+  //
+  // CSS left:N% on the absolutely-positioned logo = N% of the container's content box.
+  // The <img> element with `w-full h-full` IS that content box — measure it directly.
+  // No CSS box-model math needed (padding, border-box, parent layout all handled by DOM).
+  function containerToProductPct(
+    pctX: number,
+    pctY: number,
+    imgEl: HTMLImageElement
+  ): { x: number; y: number } {
+    const r = imgEl.getBoundingClientRect();
+    const nw = imgEl.naturalWidth;
+    const nh = imgEl.naturalHeight;
+
+    // Step 1: CSS left:N% → pixels from img element's top-left
+    const ix = (pctX / 100) * r.width;
+    const iy = (pctY / 100) * r.height;
+
+    // Step 2: object-contain — the actual image content is scaled within the img box
+    const scale = Math.min(r.width / nw, r.height / nh);
+    const cw = nw * scale;
+    const ch = nh * scale;
+    const ox = (r.width - cw) / 2;
+    const oy = (r.height - ch) / 2;
+
+    // Step 3: pixels → product-relative percentage
+    return {
+      x: Math.max(0, Math.min(100, (ix - ox) / cw * 100)),
+      y: Math.max(0, Math.min(100, (iy - oy) / ch * 100)),
+    };
+  }
 
   if (showIntro) {
     return <IntroSequence onComplete={() => { setShowIntro(false); setShowV110Notice(true); }} />;
@@ -678,7 +732,7 @@ export default function App() {
         </div>
       )}
 
-      {/* v1.1.0 Notice Banner */}
+      {/* v1.2.0 Notice Banner */}
       {showV110Notice && (
         <div className="fixed inset-0 z-[180] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60" onClick={() => setShowV110Notice(false)} />
@@ -696,11 +750,11 @@ export default function App() {
             </div>
 
             <h3 className="text-base font-semibold text-white mb-2">
-              {t("v1.1.0 精简稳定版", "v1.1.0 Stable Lite")}
+              {t("v1.2.0 精确定位", "v1.2.0 Precision Positioning")}
             </h3>
 
             <p className="text-sm text-zinc-400 leading-relaxed mb-6">
-              {t("本版本专注于 Qwen 和 Doubao 原生多图融合。旧版配置已重置，请在 AI 设置中重新配置。", "Focused on Qwen & Doubao native fusion. Old config has been reset, please reconfigure in AI Settings.")}
+              {t("画布坐标系统升级：Logo 位置转换采用 DOM 实测，消除 CSS padding 导致的偏移，AI 对位置指令的遵循度大幅提升。", "Canvas coordinate system upgrade: DOM-based measurement eliminates CSS padding offset; AI position adherence significantly improved.")}
             </p>
 
             <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
@@ -802,7 +856,7 @@ export default function App() {
               <button onClick={() => { setShowHelp(true); setIsMobileMenuOpen(false); }} className="w-full text-center py-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
                 {t("帮助文档", "Help")}
               </button>
-              <p className="text-xs text-zinc-500 text-center mt-2">SKU FOUNDRY Mobile v1.0</p>
+              <p className="text-xs text-zinc-500 text-center mt-2">SKU FOUNDRY v1.2.0</p>
           </div>
         </div>
       )}
@@ -1078,13 +1132,14 @@ export default function App() {
                          ref={canvasRef}
                          className="relative w-full h-full max-h-[600px] p-4"
                       >
-                         {/* Product Base */}
-                         <img 
-                            src={assets.find(a => a.id === selectedProductId)?.data} 
-                            className="w-full h-full object-contain drop-shadow-2xl pointer-events-none select-none" 
-                            alt="Preview" 
-                            draggable={false}
-                         />
+                          {/* Product Base */}
+                          <img 
+                             ref={productImgRef}
+                             src={assets.find(a => a.id === selectedProductId)?.data} 
+                             className="w-full h-full object-contain drop-shadow-2xl pointer-events-none select-none" 
+                             alt="Preview" 
+                             draggable={false}
+                          />
 
                          {/* Overlay Layers */}
                          {placedLogos.map((layer) => {
@@ -1367,7 +1422,7 @@ export default function App() {
                 </h3>
                 <ul className="space-y-1.5 text-xs text-zinc-300 leading-relaxed list-disc list-inside">
                   <li>{t("点击右上角\"AI 设置\"按钮", "Click \"AI Settings\" button in the top-right corner")}</li>
-                  <li>{t("v1.1.0 支持两家供应商：字节豆包（Seedream 5.0）和 阿里 Qwen-Image 2.0", "v1.1.0 supports two providers: ByteDance Doubao (Seedream 5.0) and Alibaba Qwen-Image 2.0")}</li>
+                  <li>{t("v1.2.0 支持两家供应商：字节豆包（Seedream 5.0）和 阿里 Qwen-Image 2.0", "v1.2.0 supports two providers: ByteDance Doubao (Seedream 5.0) and Alibaba Qwen-Image 2.0")}</li>
                   <li>{t("两者都支持原生多图融合（直接传入多张图 + prompt 生成一张融合图）", "Both support native multi-image fusion (multiple images + prompt → one composited output)")}</li>
                   <li>{t("也支持文生图（T2I）资产生成", "Also support text-to-image (T2I) asset generation")}</li>
                   <li>{t("填入 API Key、Base URL、生图 Base URL、模型名后可用\"测试\"按钮验证连接", "Fill in API Key, Base URL, Image Gen Base URL, Model name, then use \"Test\" button to verify")}</li>
@@ -1418,10 +1473,10 @@ export default function App() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-zinc-200 mb-1">
-                      {t("v1.1.0 变了什么？", "What changed in v1.1.0?")}
+                      {t("v1.2.0 变了什么？", "What changed in v1.2.0?")}
                     </p>
                     <p className="text-xs text-zinc-400">
-                      {t("精简为仅支持 Qwen 和 Doubao 两家供应商的本地多图融合，移除了双阶段配对模式和其他 6 家供应商。旧版配置已自动重置。", "Streamlined to only Qwen & Doubao native fusion, removed dual-stage pairing and 6 other providers. Old config auto-reset.")}
+                      {t("画布坐标系统升级：Logo 位置通过 DOM 实测转换，消除容器 padding 导致的位置偏移；Prompt 强化使 AI 更精确遵循位置和比例指令。", "Canvas coordinate system upgrade: DOM-based position conversion eliminates padding offset; enhanced prompts for better AI position & proportion adherence.")}
                     </p>
                   </div>
                 </div>

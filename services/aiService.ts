@@ -13,13 +13,22 @@ const getMimeType = (dataUrl: string): string => {
 };
 
 const getLayoutHints = (layers: { asset: Asset; placement: PlacedLayer }[]): string => {
-  let layoutHints = "";
+  let hints = "";
   layers.forEach((layer, index) => {
-    const vPos = layer.placement.y < 33 ? "top" : layer.placement.y > 66 ? "bottom" : "center";
-    const hPos = layer.placement.x < 33 ? "left" : layer.placement.x > 66 ? "right" : "center";
-    layoutHints += "\n- Logo/Graphic " + (index + 1) + " (" + layer.asset.name + "): Place at " + vPos + "-" + hPos + " area (approx coords: " + Math.round(layer.placement.x) + "% x, " + Math.round(layer.placement.y) + "% y on the canvas). Scale: " + layer.placement.scale.toFixed(2) + ", Rotation: " + layer.placement.rotation + "\u00b0";
+    const p = layer.placement;
+    const vPos = p.y < 33 ? "TOP" : p.y > 66 ? "BOTTOM" : "CENTER-VERTICAL";
+    const hPos = p.x < 33 ? "LEFT" : p.x > 66 ? "RIGHT" : "CENTER-HORIZONTAL";
+    hints += "\n\n### LOGO " + (index + 1) + ": \"" + layer.asset.name + "\" ###";
+    hints += "\nCRITICAL — The logo MUST be placed at EXACTLY these pixel coordinates:";
+    hints += "\n  • X position: " + Math.round(p.x) + "% across the product (from left edge)";
+    hints += "\n  • Y position: " + Math.round(p.y) + "% down the product (from top edge)";
+    hints += "\n  • Region: " + vPos + "-" + hPos + " of the product";
+    hints += "\n  • Scale: " + p.scale.toFixed(2) + "× of original logo size";
+    hints += "\n  • Rotation: " + p.rotation + "°";
+    hints += "\nWARNING: Do NOT center this logo. Place it at (" + Math.round(p.x) + "%," + Math.round(p.y) + "%) as specified.";
+    hints += "\nWARNING: Do NOT stretch, squash, or crop the logo. Keep its original aspect ratio.";
   });
-  return layoutHints;
+  return hints;
 };
 
 const callDoubaoGenerate = async (
@@ -95,13 +104,46 @@ const callNativeFusion = async (
   instruction: string
 ): Promise<string> => {
   const layoutHints = getLayoutHints(layers);
+  const posStr = layers.map(l =>
+    "(" + Math.round(l.placement.x) + "%," + Math.round(l.placement.y) + "%)"
+  ).join(", ");
+
   const prompt = [
-    instruction,
-    "Layout:",
+    "========================================================================",
+    "ABSOLUTE POSITION CONSTRAINT — READ THIS FIRST BEFORE GENERATING ANYTHING",
+    "========================================================================",
+    "",
+    "The logo(s) MUST be placed EXACTLY at the position(s) specified below.",
+    "This position constraint is the SINGLE MOST IMPORTANT requirement.",
+    "Do NOT center any logo. Do NOT move any logo from its specified position.",
+    "",
+    "TARGET POSITIONS: " + posStr,
+    "",
     layoutHints,
-    "Composite the provided logo/graphic images onto the product to create a realistic mockup.",
-    "Follow the Layout Guidance for positioning, scaling, and rotation.",
-    "Ensure realistic surface warping, natural wrinkles, proper lighting, reflections, and perspective blending.",
+    "",
+    "========================================================================",
+    "POSITION REMINDER — You MUST place each logo at its exact (X%,Y%) coordinate.",
+    "These coordinates are measured from the top-left of the product surface.",
+    "========================================================================",
+    "",
+    "PRESERVATION RULES — You MUST keep ALL original image proportions:",
+    "- Do NOT stretch, squash, or distort the logo shape.",
+    "- Do NOT change the logo's aspect ratio.",
+    "- Do NOT crop or cut off the logo.",
+    "- Do NOT resize the logo beyond the specified scale factor.",
+    "- Do NOT alter the product's proportions.",
+    "",
+    instruction,
+    "",
+    "--- FINAL POSITION CHECK ---",
+    "Before outputting, verify: Is the logo at position " + posStr + "?",
+    "If you placed the logo anywhere else — especially the center — you have made a mistake.",
+    "The position " + posStr + " is NOT the center (unless 50%,50% is specified).",
+    "---",
+    "",
+    "Composite the logo(s) onto the product at the EXACT specified position(s).",
+    "Keep the logo's original aspect ratio intact.",
+    "Apply realistic surface warping, natural wrinkles, proper lighting, reflections, and perspective blending.",
     "Output ONLY the resulting image.",
   ].join("\n");
   const images = [product.data, ...layers.map(l => l.asset.data)];
