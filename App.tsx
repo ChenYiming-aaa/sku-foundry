@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import React, { useState, useEffect, useRef } from 'react';
-import { Layout, Box, Image as ImageIcon, Wand2, Layers, Plus, Trash2, Download, Sparkles, Shirt, Maximize, ArrowRight, SprayCan, Package, Menu, X, Check, Settings } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Layout, Box, Image as ImageIcon, Wand2, Layers, Plus, Trash2, Download, Sparkles, Shirt, Maximize, ArrowRight, Package, Menu, X, Check, Settings } from 'lucide-react';
 import { Button } from './components/Button';
 import { FileUploader } from './components/FileUploader';
 import { generateMockup, generateAsset } from './services/aiService';
@@ -12,155 +13,296 @@ import { ApiSettingsModal, DEFAULT_SETTINGS } from './components/ApiSettingsModa
 import { promptLibrary, promptCategories, type PromptTemplate } from './data/prompts';
 
 
-// --- Intro Animation Component ---
+// ============ INTRO: BAR REVEAL (Framer Motion) ============
 
-const IntroSequence = ({ onComplete }: { onComplete: () => void }) => {
-  const [phase, setPhase] = useState<'enter' | 'wait' | 'spray' | 'admire' | 'exit' | 'prism' | 'explode'>('enter');
+const BAR_COLORS = [
+  '#1e1b4b', '#312e81', '#3730a3', '#4338ca', '#4f46e5',
+  '#6366f1', '#6366f1', '#4f46e5', '#4338ca', '#3730a3',
+  '#312e81', '#1e1b4b',
+];
+const BRAND_CHARS = 'SKU FOUNDRY'.split('');
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.4 } },
+  exit: { opacity: 0, transition: { duration: 0.4, delay: 0.2 } },
+};
+const barVariants = {
+  visible: (i: number) => ({
+    scaleY: 0,
+    transition: { delay: 0.3 + i * 0.04, duration: 0.6, ease: [0.76, 0, 0.24, 1] },
+  }),
+};
+const charVariantsFM = {
+  hidden: { y: 60, opacity: 0, rotateX: -90 },
+  visible: (i: number) => ({
+    y: 0, opacity: 1, rotateX: 0,
+    transition: { delay: 0.8 + i * 0.045, duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+  }),
+};
+
+function IntroBarReveal({ onComplete }: { onComplete: () => void }) {
+  const [isDone, setIsDone] = useState(false);
   useEffect(() => {
-    // Cinematic Timeline
-    const schedule = [
-      { t: 100, fn: () => setPhase('enter') },      // Bot walks in
-      { t: 1800, fn: () => setPhase('wait') },      // Stops, looks around
-      { t: 2400, fn: () => setPhase('spray') },     // Spray can enters & sprays
-      { t: 4000, fn: () => setPhase('admire') },    // Spray done, bot looks at self
-      { t: 5000, fn: () => setPhase('exit') },      // Bot runs away
-      { t: 5600, fn: () => setPhase('prism') },     // Logo forms
-      { t: 7800, fn: () => setPhase('explode') },   // Boom
-      { t: 8500, fn: () => onComplete() }           // Done
-    ];
-
-    const timers = schedule.map(s => setTimeout(s.fn, s.t));
-    return () => timers.forEach(clearTimeout);
+    const t = setTimeout(() => setIsDone(true), 5200);
+    const t2 = setTimeout(() => onComplete(), 5800);
+    return () => { clearTimeout(t); clearTimeout(t2); };
   }, [onComplete]);
 
   return (
-    <div className={`fixed inset-0 z-[100] bg-black flex items-center justify-center overflow-hidden font-sans select-none
-      ${phase === 'explode' ? 'animate-[fadeOut_1s_ease-out_forwards] pointer-events-none' : ''}
-    `}>
-      {/* Flash Overlay for Explosion */}
-      <div className={`absolute inset-0 bg-white pointer-events-none z-50 transition-opacity duration-300 ease-out ${phase === 'explode' ? 'opacity-100' : 'opacity-0'}`}></div>
-
-      {/* Background Grid */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_80%)]"></div>
-
-      {/* STAGE AREA - Scaled for mobile */}
-      <div className="relative w-full max-w-4xl h-96 flex items-center justify-center scale-[0.6] md:scale-100">
-
-        {/* --- CHARACTER: THE BOX BOT --- */}
-        {(phase !== 'prism' && phase !== 'explode') && (
-          <div className={`relative z-10 flex flex-col items-center transition-transform will-change-transform
-             ${phase === 'enter' ? 'animate-[hopIn_1.6s_cubic-bezier(0.34,1.56,0.64,1)_forwards]' : ''}
-             ${phase === 'exit' ? 'animate-[anticipateSprint_0.8s_ease-in_forwards]' : ''}
-          `}>
-             {/* Body */}
-             <div className={`w-32 h-36 bg-zinc-100 rounded-xl relative overflow-hidden shadow-2xl transition-all duration-300 border-4
-                ${phase === 'spray' || phase === 'admire' || phase === 'exit' 
-                  ? 'border-indigo-500 shadow-[0_0_40px_rgba(99,102,241,0.5)]' 
-                  : 'border-zinc-300'}
-             `}>
-                
-                {/* Blank Package Tape (Hidden after spray) */}
-                <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-8 h-full bg-zinc-200/50 border-x border-zinc-300/50 transition-opacity duration-200 ${phase === 'spray' || phase === 'admire' || phase === 'exit' ? 'opacity-0' : 'opacity-100'}`}></div>
-
-                {/* Face Screen */}
-                <div className="absolute top-6 left-1/2 -translate-x-1/2 w-20 h-10 bg-zinc-800 rounded-md flex items-center justify-center gap-4 overflow-hidden border border-zinc-700 shadow-inner z-20">
-                   {/* Eyes */}
-                   <div className={`w-2 h-2 bg-cyan-400 rounded-full transition-all duration-300 ${phase === 'spray' ? 'scale-y-10 bg-yellow-400' : 'animate-pulse'}`}></div>
-                   <div className={`w-2 h-2 bg-cyan-400 rounded-full transition-all duration-300 ${phase === 'spray' ? 'scale-y-10 bg-yellow-400' : 'animate-pulse'}`}></div>
-                </div>
-
-                {/* BRAND REVEAL: Logo & Color Gradient */}
-                <div className={`absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 transition-opacity duration-500 ${phase === 'spray' || phase === 'admire' || phase === 'exit' ? 'opacity-100' : 'opacity-0'}`}></div>
-                
-                {/* White Flash on Transform */}
-                <div className={`absolute inset-0 bg-white mix-blend-overlay pointer-events-none ${phase === 'spray' ? 'animate-[flash_0.2s_ease-out]' : 'opacity-0'}`}></div>
-
-                {/* Logo Icon */}
-                <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 transition-all duration-500 transform z-20
-                   ${phase === 'spray' || phase === 'admire' || phase === 'exit' ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-50 translate-y-4'}
-                `}>
-                   <div className="w-10 h-10 bg-white text-indigo-600 rounded flex items-center justify-center shadow-lg">
-                      <Package size={24} strokeWidth={3} />
-                   </div>
-                </div>
-             </div>
-
-             {/* Legs */}
-             <div className="flex gap-10 -mt-1 z-0">
-                <div className={`w-3 h-8 bg-zinc-800 rounded-b-full origin-top ${phase === 'enter' ? 'animate-[legMove_0.2s_infinite_alternate]' : ''} ${phase === 'exit' ? 'animate-[legMove_0.1s_infinite_alternate]' : ''}`}></div>
-                <div className={`w-3 h-8 bg-zinc-800 rounded-b-full origin-top ${phase === 'enter' ? 'animate-[legMove_0.2s_infinite_alternate-reverse]' : ''} ${phase === 'exit' ? 'animate-[legMove_0.1s_infinite_alternate-reverse]' : ''}`}></div>
-             </div>
+    <AnimatePresence>
+      {!isDone && (
+        <motion.div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black overflow-hidden"
+          variants={containerVariants}
+          initial="hidden" animate="visible" exit="exit"
+        >
+          <motion.div className="absolute w-[600px] h-[600px] rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)' }}
+            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <div className="absolute inset-0 flex pointer-events-none">
+            {BAR_COLORS.map((color, i) => (
+              <motion.div key={i} className="h-full flex-1 origin-top"
+                style={{ backgroundColor: color }}
+                custom={i} variants={barVariants}
+                initial={{ scaleY: 1, opacity: 1 }} animate="visible"
+              />
+            ))}
           </div>
-        )}
-
-        {/* --- SPRAY CAN ACTOR --- */}
-        {phase === 'spray' && (
-          <div className="absolute z-20 animate-[swoopIn_0.4s_cubic-bezier(0.17,0.67,0.83,0.67)_forwards]" style={{ right: '22%', top: '5%' }}>
-             <div className="relative animate-[shake_0.15s_infinite]">
-                <SprayCan size={80} className="text-zinc-300 fill-zinc-800 rotate-[-15deg] drop-shadow-2xl" />
-                
-                {/* Spray Nozzle Mist */}
-                <div className="absolute top-0 -left-4 w-6 h-6 bg-white rounded-full blur-md animate-ping"></div>
-                
-                {/* Particle Stream */}
-                <div className="absolute top-4 -left-8 w-40 h-40 pointer-events-none overflow-visible">
-                   {[...Array(20)].map((_, i) => (
-                      <div 
-                        key={i}
-                        className="absolute w-2 h-2 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full animate-[sprayParticle_0.4s_linear_forwards]"
-                        style={{ 
-                           top: Math.random() * 20, 
-                           left: 0,
-                           animationDelay: `${Math.random() * 0.3}s`,
-                        }}
-                      />
-                   ))}
-                </div>
-             </div>
+          <div className="relative z-10 text-center px-6">
+            <motion.div className="mb-8 flex justify-center"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1, transition: { delay: 1.6, duration: 0.4, ease: [0.16, 1, 0.3, 1] } }}
+            >
+              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-500/40">
+                <Package size={32} className="text-white" strokeWidth={2.5} />
+              </div>
+            </motion.div>
+            <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tight mb-6 flex flex-wrap justify-center gap-x-3 perspective-[800px]">
+              {BRAND_CHARS.map((char, i) => (
+                <motion.span key={i} className="inline-block" custom={i}
+                  variants={charVariantsFM} initial="hidden" animate="visible"
+                  style={{ transformStyle: 'preserve-3d' }}
+                >{char === ' ' ? '\u00A0' : char}</motion.span>
+              ))}
+            </h1>
+            <motion.div className="flex justify-center mb-6"
+              initial={{ scaleX: 0, opacity: 0 }}
+              animate={{ scaleX: 1, opacity: 1, transition: { delay: 2.4, duration: 0.6, ease: [0.16, 1, 0.3, 1] } }}
+              style={{ transformOrigin: 'center' }}
+            >
+              <div className="h-[3px] w-24 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full" />
+            </motion.div>
+            <motion.p className="text-sm sm:text-base text-indigo-400 font-mono uppercase tracking-[0.35em]"
+              initial={{ y: 20, opacity: 0, filter: 'blur(4px)' }}
+              animate={{ y: 0, opacity: 1, filter: 'blur(0px)', transition: { delay: 2.8, duration: 0.5, ease: 'easeOut' } }}
+            >AI Product Visualization</motion.p>
           </div>
-        )}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
 
-        {/* --- FINALE --- */}
-        {(phase === 'prism' || phase === 'explode') && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-8">
-             {/* Logo Icon */}
-             <div className={`relative w-32 h-32 animate-[spinAppear_1.5s_cubic-bezier(0.34,1.56,0.64,1)_forwards]`}>
-                <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_50px_rgba(99,102,241,0.5)]">
-                   <defs>
-                      <linearGradient id="prismStroke" x1="0" y1="0" x2="1" y2="1">
-                         <stop offset="0%" stopColor="#6366f1" />
-                         <stop offset="100%" stopColor="#a855f7" />
-                      </linearGradient>
-                   </defs>
-                   <path 
-                      d="M50 10 L90 85 L10 85 Z" 
-                      fill="none" 
-                      stroke="url(#prismStroke)" 
-                      strokeWidth="4" 
-                      strokeLinejoin="round"
-                      className="animate-[drawStroke_1s_ease-out_forwards]"
-                   />
-                   <path 
-                      d="M50 10 L50 85 M50 50 L90 85 M50 50 L10 85" 
-                      stroke="url(#prismStroke)" 
-                      strokeWidth="1.5" 
-                      className="opacity-40"
-                   />
-                </svg>
-             </div>
-             
-             {/* Text Reveal */}
-             <div className="text-center animate-[popIn_0.8s_cubic-bezier(0.17,0.67,0.83,0.67)_0.5s_forwards] opacity-0">
-                <h1 className="text-5xl font-black text-white tracking-tighter mb-2">SKU FOUNDRY</h1>
-                <p className="text-sm text-indigo-400 font-mono tracking-[0.3em] uppercase">AI Product Visualization</p>
-             </div>
-          </div>
-        )}
+// ============ INTRO: LIGHT BURST (Glass Core + Particle Swarm) ============
 
+const SWARM_COLORS = ['#a5b4fc', '#818cf8', '#c084fc', '#6366f1', '#e0e7ff', '#9333ea'];
+const SWARM_COUNT = 80;
+const SWARM_RADIUS = 130;
+
+const sparkColors = ['#818cf8', '#6366f1', '#a855f7', '#c084fc', '#e9d5ff'];
+
+function IntroLightBurst({ onComplete }: { onComplete: () => void }) {
+  const starsRef = useRef<HTMLDivElement>(null);
+  const swarmRef = useRef<HTMLDivElement>(null);
+  const sparksRef = useRef<HTMLDivElement>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    // Generate stars
+    if (starsRef.current) {
+      for (let i = 0; i < 100; i++) {
+        const s = document.createElement('div');
+        s.style.cssText = `position:absolute;left:${Math.random()*100}%;top:${Math.random()*100}%;width:${1+Math.random()*2}px;height:${1+Math.random()*2}px;border-radius:50%;background:rgba(255,255,255,0.4);animation:lb-starTwinkle ${2+Math.random()*4}s ease-in-out ${Math.random()*3}s infinite;`;
+        starsRef.current.appendChild(s);
+      }
+    }
+    // Generate 3D particle swarm
+    if (swarmRef.current) {
+      for (let i = 0; i < SWARM_COUNT; i++) {
+        const p = document.createElement('div');
+        const phi = Math.acos(2 * Math.random() - 1);
+        const theta = Math.random() * Math.PI * 2;
+        const x = SWARM_RADIUS * Math.sin(phi) * Math.cos(theta);
+        const y = SWARM_RADIUS * Math.sin(phi) * Math.sin(theta);
+        const z = SWARM_RADIUS * Math.cos(phi);
+        const size = 1.5 + Math.random() * 2.5;
+        const color = SWARM_COLORS[Math.floor(Math.random() * SWARM_COLORS.length)];
+        p.style.cssText = `position:absolute;width:${size}px;height:${size}px;border-radius:50%;background:${color};box-shadow:0 0 ${3+size}px ${color};transform:translate3d(${x}px,${y}px,${z}px);animation:lb-particleFade ${1.5+Math.random()*1.5}s ease-in-out ${Math.random()*2}s infinite alternate;`;
+        swarmRef.current.appendChild(p);
+      }
+    }
+    // Generate sparks
+    if (sparksRef.current) {
+      for (let i = 0; i < 25; i++) {
+        const sp = document.createElement('div');
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 80 + Math.random() * 180;
+        const color = sparkColors[Math.floor(Math.random() * sparkColors.length)];
+        const delay = 0.6 + Math.random() * 1.0;
+        sp.style.cssText = `position:absolute;width:${2+Math.random()*4}px;height:${2+Math.random()*4}px;border-radius:50%;background:${color};box-shadow:0 0 6px ${color};animation:lb-sparkFly 1s cubic-bezier(0.25,0.46,0.45,0.94) ${delay}s forwards;opacity:0;--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist}px;`;
+        sparksRef.current.appendChild(sp);
+      }
+    }
+    setReady(true);
+  }, []);
+
+  const [isDone, setIsDone] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setIsDone(true), 4800);
+    const t2 = setTimeout(() => onComplete(), 5200);
+    return () => { clearTimeout(t); clearTimeout(t2); };
+  }, [onComplete]);
+
+  return (
+    <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#05030f] overflow-hidden ${isDone ? 'animate-[lb-sceneOut_0.6s_ease-in_forwards]' : ''}`}>
+      {/* Stars */}
+      <div ref={starsRef} className="absolute inset-0 pointer-events-none" />
+
+      {/* Ambient glows */}
+      <div className="absolute w-[500px] h-[500px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)' }}
+      />
+      <div className="absolute w-[350px] h-[350px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, rgba(168,85,247,0.06) 0%, transparent 70%)' }}
+      />
+
+      {/* Concentric expanding rings */}
+      {['240px','350px','480px','640px'].map((s, i) => (
+        <div key={i} className="absolute rounded-full pointer-events-none"
+          style={{
+            width: s, height: s, border: '1.5px solid rgba(99,102,241,0.2)',
+            animation: `lb-ringExpand 2.5s ease-out ${0.3+i*0.3}s forwards`, opacity: 0,
+            borderColor: i === 3 ? 'rgba(168,85,247,0.18)' : undefined,
+          }}
+        />
+      ))}
+
+      {/* Orb */}
+      <div className="relative" style={{ width: 180, height: 180, animation: 'lb-orbFloat 7s ease-in-out infinite' }}>
+        {/* Outer glow */}
+        <div className="absolute"
+          style={{
+            inset: '-50%', borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, rgba(168,85,247,0.04) 30%, transparent 70%)',
+            animation: 'lb-glowBreathe 3.5s ease-in-out infinite',
+          }}
+        />
+        {/* Glass core */}
+        <div className="absolute inset-0 rounded-full"
+          style={{
+            background: `
+              radial-gradient(circle at 28% 22%, rgba(255,255,255,0.6) 0%, transparent 28%),
+              radial-gradient(circle at 75% 70%, rgba(196,181,253,0.2) 0%, transparent 35%),
+              conic-gradient(from 0deg, #6366f1 0deg, #818cf8 60deg, #a5b4fc 120deg, #c084fc 180deg, #818cf8 220deg, #6366f1 280deg, #6366f1 360deg)
+            `,
+            boxShadow: 'inset 0 -10px 40px rgba(0,0,0,0.3), 0 0 40px rgba(99,102,241,0.25)',
+            animation: 'lb-glassSpin 14s linear infinite, lb-glassPulse 3s ease-in-out infinite',
+          }}
+        />
+        {/* Glass specular */}
+        <div className="absolute rounded-full" style={{
+          top: '7%', left: '14%', width: '42%', height: '28%',
+          background: 'radial-gradient(ellipse, rgba(255,255,255,0.55) 0%, transparent 65%)',
+          transform: 'rotate(-22deg)', filter: 'blur(2px)',
+        }} />
+        {/* Inner core */}
+        <div className="absolute rounded-full" style={{
+          top: '35%', left: '35%', width: '30%', height: '30%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(165,180,252,0.25) 40%, transparent 70%)',
+          animation: 'lb-corePulse 1.8s ease-in-out infinite', filter: 'blur(1px)',
+        }} />
+
+        {/* 3D particle swarm */}
+        <div ref={swarmRef} className="absolute" style={{
+          top: '50%', left: '50%', width: 0, height: 0,
+          transformStyle: 'preserve-3d', perspective: 800,
+          animation: 'lb-swarmRotate 18s linear infinite',
+        }} />
+
+        {/* Rings */}
+        <div className="absolute rounded-full" style={{
+          top: '-20%', left: '-20%', width: '140%', height: '140%',
+          border: '1.5px solid rgba(129,140,248,0.1)',
+          animation: 'lb-ringSpin 9s linear infinite',
+        }}>
+          <div className="absolute rounded-full" style={{
+            top: -3, left: '50%', width: 7, height: 7, marginLeft: -3.5,
+            background: '#a5b4fc', boxShadow: '0 0 10px rgba(165,180,252,0.6)',
+          }} />
+        </div>
+        <div className="absolute rounded-full" style={{
+          top: '-30%', left: '-30%', width: '160%', height: '160%',
+          border: '1px solid rgba(168,85,247,0.07)',
+          animation: 'lb-ringSpin 13s linear infinite reverse',
+          transform: 'rotateX(60deg) rotateZ(20deg)', transformStyle: 'preserve-3d',
+        }}>
+          <div className="absolute rounded-full" style={{
+            bottom: -2, left: '55%', width: 5, height: 5, marginLeft: -2.5,
+            background: '#c084fc', boxShadow: '0 0 8px rgba(192,132,252,0.4)',
+          }} />
+        </div>
+        <div className="absolute rounded-full" style={{
+          top: '-10%', left: '-10%', width: '120%', height: '120%',
+          border: '1px dashed rgba(129,140,248,0.05)',
+          animation: 'lb-ringSpin 4.5s linear infinite',
+        }}>
+          <div className="absolute rounded-full" style={{
+            top: -1, left: '50%', width: 3, height: 3, marginLeft: -1.5,
+            background: '#e0e7ff', boxShadow: '0 0 4px rgba(224,231,255,0.4)',
+          }} />
+        </div>
+      </div>
+
+      {/* Sparks */}
+      <div ref={sparksRef} className="absolute" style={{ left: '50%', top: '50%', width: 0, height: 0, pointerEvents: 'none' }} />
+
+      {/* Brand text */}
+      <div className="relative z-10 text-center" style={{ opacity: ready ? undefined : 0 }}>
+        <div style={{
+          opacity: 0, animation: 'lb-textReveal 0.7s cubic-bezier(0.16,1,0.3,1) 1.6s forwards',
+        }}>
+          <h1 className="text-5xl sm:text-7xl font-black text-white tracking-tight mb-5">
+            {BRAND_CHARS.map((c, i) => (
+              <span key={i} className="inline-block" style={{
+                animation: `lb-charGlow 2s ease-in-out ${i * 0.1}s infinite`,
+              }}>{c === ' ' ? '\u00A0' : c}</span>
+            ))}
+          </h1>
+        </div>
+        <div className="h-[3px] mx-auto rounded-full" style={{
+          background: 'linear-gradient(90deg, transparent, #6366f1, #a855f7, transparent)',
+          animation: 'lb-lineGrow 0.6s cubic-bezier(0.16,1,0.3,1) 2s forwards',
+        }} />
+        <p className="text-sm font-mono uppercase mt-5" style={{
+          color: 'rgba(206,201,235,0.8)', letterSpacing: '0.4em',
+          animation: 'lb-taglineIn 0.5s ease-out 2.3s forwards', opacity: 0,
+        }}>AI Product Visualization</p>
       </div>
     </div>
   );
+}
+
+// ============ RANDOM INTRO SELECTOR ============
+
+const IntroSequence = ({ onComplete }: { onComplete: () => void }) => {
+  const [variant] = useState(() => Math.random() > 0.5 ? 'bar' : 'burst');
+
+  return variant === 'bar'
+    ? <IntroBarReveal onComplete={onComplete} />
+    : <IntroLightBurst onComplete={onComplete} />;
 };
 
 // --- UI Components ---
@@ -386,7 +528,7 @@ const AssetSection = ({
 
 export default function App() {
   const [showIntro, setShowIntro] = useState(true);
-  const [showV120Notice, setShowV110Notice] = useState(false);
+  const [showV120Notice, setShowV120Notice] = useState(false);
   const [view, setView] = useState<AppView>('dashboard');
   const [assets, setAssets] = useState<Asset[]>([]);
   const [generatedMockups, setGeneratedMockups] = useState<GeneratedMockup[]>([]);
@@ -668,7 +810,7 @@ export default function App() {
 
   useEffect(() => {
     if (!showV120Notice) return;
-    const timer = setTimeout(() => setShowV110Notice(false), 3000);
+    const timer = setTimeout(() => setShowV120Notice(false), 3000);
     return () => clearTimeout(timer);
   }, [showV120Notice]);
 
@@ -705,7 +847,7 @@ export default function App() {
   }
 
   if (showIntro) {
-    return <IntroSequence onComplete={() => { setShowIntro(false); setShowV110Notice(true); }} />;
+    return <IntroSequence onComplete={() => { setShowIntro(false); setShowV120Notice(true); }} />;
   }
 
   return (
@@ -732,13 +874,13 @@ export default function App() {
         </div>
       )}
 
-      {/* v1.2.0 Notice Banner */}
+      {/* v1.2.1 Notice Banner */}
       {showV120Notice && (
         <div className="fixed inset-0 z-[180] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setShowV110Notice(false)} />
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowV120Notice(false)} />
           <div className="relative bg-zinc-900 border border-zinc-700/60 rounded-2xl text-white text-center py-8 px-10 max-w-sm w-full shadow-2xl animate-[scaleFadeIn_0.35s_ease-out_forwards]">
             <button
-              onClick={() => setShowV110Notice(false)}
+              onClick={() => setShowV120Notice(false)}
               className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
               aria-label="Close"
             >
@@ -750,11 +892,11 @@ export default function App() {
             </div>
 
             <h3 className="text-base font-semibold text-white mb-2">
-              {t("v1.2.0 精确定位", "v1.2.0 Precision Positioning")}
+              {t("v1.2.1 随机开场", "v1.2.1 Random Intro")}
             </h3>
 
             <p className="text-sm text-zinc-400 leading-relaxed mb-6">
-              {t("画布坐标系统升级：Logo 位置转换采用 DOM 实测，消除 CSS padding 导致的偏移，AI 对位置指令的遵循度大幅提升。", "Canvas coordinate system upgrade: DOM-based measurement eliminates CSS padding offset; AI position adherence significantly improved.")}
+              {t("新增 Light Burst 开场动画，每次启动随机展示 Bar Reveal 或 Light Burst 两种开场效果。", "New Light Burst intro animation; randomly shows Bar Reveal or Light Burst on each startup.")}
             </p>
 
             <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
@@ -856,7 +998,7 @@ export default function App() {
               <button onClick={() => { setShowHelp(true); setIsMobileMenuOpen(false); }} className="w-full text-center py-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
                 {t("帮助文档", "Help")}
               </button>
-              <p className="text-xs text-zinc-500 text-center mt-2">SKU FOUNDRY v1.2.0</p>
+              <p className="text-xs text-zinc-500 text-center mt-2">SKU FOUNDRY v1.2.1</p>
           </div>
         </div>
       )}
@@ -1422,7 +1564,7 @@ export default function App() {
                 </h3>
                 <ul className="space-y-1.5 text-xs text-zinc-300 leading-relaxed list-disc list-inside">
                   <li>{t("点击右上角\"AI 设置\"按钮", "Click \"AI Settings\" button in the top-right corner")}</li>
-                  <li>{t("v1.2.0 支持两家供应商：字节豆包（Seedream 5.0）和 阿里 Qwen-Image 2.0", "v1.2.0 supports two providers: ByteDance Doubao (Seedream 5.0) and Alibaba Qwen-Image 2.0")}</li>
+                  <li>{t("v1.2.1 支持两家供应商：字节豆包（Seedream 5.0）和 阿里 Qwen-Image 2.0", "v1.2.1 supports two providers: ByteDance Doubao (Seedream 5.0) and Alibaba Qwen-Image 2.0")}</li>
                   <li>{t("两者都支持原生多图融合（直接传入多张图 + prompt 生成一张融合图）", "Both support native multi-image fusion (multiple images + prompt → one composited output)")}</li>
                   <li>{t("也支持文生图（T2I）资产生成", "Also support text-to-image (T2I) asset generation")}</li>
                   <li>{t("填入 API Key、Base URL、生图 Base URL、模型名后可用\"测试\"按钮验证连接", "Fill in API Key, Base URL, Image Gen Base URL, Model name, then use \"Test\" button to verify")}</li>
@@ -1473,10 +1615,10 @@ export default function App() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-zinc-200 mb-1">
-                      {t("v1.2.0 变了什么？", "What changed in v1.2.0?")}
+                      {t("v1.2.1 变了什么？", "What changed in v1.2.1?")}
                     </p>
                     <p className="text-xs text-zinc-400">
-                      {t("画布坐标系统升级：Logo 位置通过 DOM 实测转换，消除容器 padding 导致的位置偏移；Prompt 强化使 AI 更精确遵循位置和比例指令。", "Canvas coordinate system upgrade: DOM-based position conversion eliminates padding offset; enhanced prompts for better AI position & proportion adherence.")}
+                      {t("新增 Light Burst 开场动画（玻璃核心 + 粒子群 + 光爆），启动时随机切换两种开场效果。", "New Light Burst intro (glass core + particle swarm + light burst). Randomly switches between two intro styles on startup.")}
                     </p>
                   </div>
                 </div>

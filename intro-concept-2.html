@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intro Concept — Light Burst</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; height: 100vh; font-family: Inter, system-ui, sans-serif; }
+
+    .scene {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: #05030f;
+      animation: fadeOut 0.8s ease-in 3.8s forwards;
+    }
+
+    /* === GLASS CORE + PARTICLE SWARM === */
+    .orb-wrapper {
+      position: absolute;
+      width: 200px; height: 200px;
+      animation: orbFloat 7s ease-in-out infinite;
+    }
+
+    /* --- Outer ambient glow --- */
+    .orb-glow {
+      position: absolute;
+      inset: -50%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 50% 50%, rgba(99,102,241,0.12) 0%, rgba(168,85,247,0.06) 30%, transparent 70%);
+      animation: glowBreathe 3.5s ease-in-out infinite;
+    }
+
+    /* --- Iridescent glass core --- */
+    .orb-glass {
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 28% 22%, rgba(255,255,255,0.7) 0%, transparent 28%),
+        radial-gradient(circle at 75% 70%, rgba(196,181,253,0.25) 0%, transparent 35%),
+        conic-gradient(from 0deg at 50% 50%,
+          #6366f1 0deg, #818cf8 60deg, #a5b4fc 120deg,
+          #c084fc 180deg, #818cf8 220deg, #6366f1 280deg, #6366f1 360deg);
+      box-shadow:
+        inset 0 -10px 40px rgba(0,0,0,0.35),
+        inset 0 10px 30px rgba(255,255,255,0.08),
+        0 0 40px rgba(99,102,241,0.3),
+        0 0 80px rgba(99,102,241,0.12);
+      animation: glassSpin 14s linear infinite, glassPulse 3s ease-in-out infinite;
+    }
+    /* Specular highlight — bright spot */
+    .orb-glass::before {
+      content: '';
+      position: absolute;
+      top: 7%; left: 14%;
+      width: 42%; height: 28%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.65) 0%, transparent 65%);
+      transform: rotate(-22deg);
+      filter: blur(2px);
+    }
+    /* Bottom rim light */
+    .orb-glass::after {
+      content: '';
+      position: absolute;
+      bottom: 6%; right: 12%;
+      width: 28%; height: 14%;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at 50% 50%, rgba(196,181,253,0.35) 0%, transparent 70%);
+      transform: rotate(25deg);
+      filter: blur(4px);
+    }
+
+    /* --- Inner energy core (pulsing center) --- */
+    .orb-core {
+      position: absolute;
+      top: 35%; left: 35%;
+      width: 30%; height: 30%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.5) 0%, rgba(165,180,252,0.3) 40%, transparent 70%);
+      animation: corePulse 1.8s ease-in-out infinite;
+      filter: blur(1px);
+    }
+
+    /* --- 3D particle swarm container --- */
+    .particle-swarm {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 0; height: 0;
+      transform-style: preserve-3d;
+      perspective: 800px;
+      animation: swarmRotate 18s linear infinite;
+    }
+    .p-particle {
+      position: absolute;
+      border-radius: 50%;
+      animation: particleFade 2s ease-in-out infinite alternate;
+    }
+
+    /* --- Orbiting ring 1 (outer, slow) --- */
+    .orb-ring {
+      position: absolute;
+      top: -20%; left: -20%;
+      width: 140%; height: 140%;
+      border-radius: 50%;
+      border: 1.5px solid rgba(129,140,248,0.12);
+      animation: orbRingSpin 9s linear infinite;
+    }
+    .orb-ring::before {
+      content: '';
+      position: absolute;
+      top: -3px; left: 50%;
+      width: 7px; height: 7px;
+      margin-left: -3.5px;
+      border-radius: 50%;
+      background: #a5b4fc;
+      box-shadow: 0 0 10px rgba(165,180,252,0.7), 0 0 25px rgba(165,180,252,0.25);
+    }
+    .orb-ring::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 25%;
+      width: 4px; height: 4px;
+      margin-left: -2px;
+      border-radius: 50%;
+      background: rgba(165,180,252,0.35);
+      box-shadow: 0 0 5px rgba(165,180,252,0.2);
+    }
+
+    /* --- Orbiting ring 2 (tilted) --- */
+    .orb-ring-2 {
+      position: absolute;
+      top: -32%; left: -32%;
+      width: 164%; height: 164%;
+      border-radius: 50%;
+      border: 1px solid rgba(168,85,247,0.08);
+      animation: orbRingSpin 14s linear infinite reverse;
+      transform: rotateX(65deg) rotateZ(15deg);
+      transform-style: preserve-3d;
+    }
+    .orb-ring-2::before {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 55%;
+      width: 5px; height: 5px;
+      margin-left: -2.5px;
+      border-radius: 50%;
+      background: #c084fc;
+      box-shadow: 0 0 8px rgba(192,132,252,0.5), 0 0 16px rgba(192,132,252,0.2);
+    }
+
+    /* --- Orbiting ring 3 (inner dashed) --- */
+    .orb-ring-3 {
+      position: absolute;
+      top: -10%; left: -10%;
+      width: 120%; height: 120%;
+      border-radius: 50%;
+      border: 1px dashed rgba(129,140,248,0.06);
+      animation: orbRingSpin 5s linear infinite;
+    }
+    .orb-ring-3::before {
+      content: '';
+      position: absolute;
+      top: -1px; left: 50%;
+      width: 3px; height: 3px;
+      margin-left: -1.5px;
+      border-radius: 50%;
+      background: #e0e7ff;
+      box-shadow: 0 0 4px rgba(224,231,255,0.5);
+    }
+
+    @keyframes glassSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes glassPulse {
+      0%, 100% { transform: scale(1); opacity: 0.95; }
+      50% { transform: scale(1.03); opacity: 1; }
+    }
+    @keyframes corePulse {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(1.4); opacity: 1; }
+    }
+    @keyframes glowBreathe {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.18); opacity: 1; }
+    }
+    @keyframes orbFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-14px); }
+    }
+    @keyframes swarmRotate {
+      from { transform: rotateY(0deg) rotateX(10deg); }
+      to { transform: rotateY(360deg) rotateX(10deg); }
+    }
+    @keyframes particleFade {
+      0% { opacity: 0.2; transform: scale(0.6); }
+      100% { opacity: 1; transform: scale(1.2); }
+    }
+    @keyframes orbRingSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* === CONCENTRIC RINGS === */
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1.5px solid rgba(99,102,241,0.3);
+      animation: ringExpand 3s ease-out forwards;
+      opacity: 0;
+    }
+    .ring:nth-child(1) { width: 240px; height: 240px; animation-delay: 0.4s; }
+    .ring:nth-child(2) { width: 350px; height: 350px; animation-delay: 0.7s; }
+    .ring:nth-child(3) { width: 480px; height: 480px; animation-delay: 1.0s; }
+    .ring:nth-child(4) { width: 640px; height: 640px; animation-delay: 1.3s; border-color: rgba(168,85,247,0.25); }
+
+    @keyframes ringExpand {
+      0% { transform: scale(0.3); opacity: 0; }
+      20% { opacity: 1; }
+      100% { transform: scale(1.2); opacity: 0; }
+    }
+
+    /* === PARTICLE SPARK === */
+    .spark-container {
+      position: absolute;
+      width: 0; height: 0;
+      left: 50%; top: 50%;
+    }
+    .spark {
+      position: absolute;
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: #818cf8;
+      animation: sparkFly 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+      opacity: 0;
+    }
+
+    @keyframes sparkFly {
+      0% { transform: translate(0,0) scale(0); opacity: 0; }
+      30% { opacity: 1; }
+      100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+    }
+
+    /* === BRAND TEXT === */
+    .brand {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      opacity: 0;
+      animation: textReveal 0.7s cubic-bezier(0.16,1,0.3,1) 1.6s forwards;
+    }
+
+    @keyframes textReveal {
+      0% { transform: scale(0.5); opacity: 0; filter: blur(12px); }
+      100% { transform: scale(1); opacity: 1; filter: blur(0); }
+    }
+
+    .brand h1 {
+      font-size: clamp(3rem, 10vw, 6rem);
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      color: #ffffff;
+      text-shadow: 0 0 40px rgba(99,102,241,0.15);
+    }
+
+    .brand .char-glow {
+      display: inline-block;
+      animation: charGlow 2s ease-in-out infinite;
+    }
+    @keyframes charGlow {
+      0%, 100% { text-shadow: 0 0 20px rgba(99,102,241,0.2); }
+      50% { text-shadow: 0 0 40px rgba(99,102,241,0.5), 0 0 80px rgba(168,85,247,0.2); }
+    }
+
+    /* Accent line */
+    .accent-line {
+      height: 3px;
+      width: 0;
+      margin: 24px auto;
+      background: linear-gradient(90deg, transparent, #6366f1, #a855f7, transparent);
+      border-radius: 2px;
+      animation: lineGrow 0.6s cubic-bezier(0.16,1,0.3,1) 2.0s forwards;
+    }
+
+    @keyframes lineGrow {
+      0% { width: 0; opacity: 0; }
+      100% { width: 160px; opacity: 1; }
+    }
+
+    /* Tagline */
+    .tagline {
+      font-size: clamp(0.7rem, 1.5vw, 0.9rem);
+      color: rgba(206, 201, 235, 0.85);
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.4em;
+      opacity: 0;
+      transform: translateY(12px);
+      animation: taglineIn 0.5s ease-out 2.3s forwards;
+    }
+
+    @keyframes taglineIn {
+      0% { opacity: 0; transform: translateY(12px); filter: blur(4px); }
+      100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+    }
+
+    /* === BACKGROUND STARS === */
+    .stars {
+      position: absolute; inset: 0;
+      overflow: hidden;
+    }
+    .star {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.6);
+      animation: twinkle var(--dur) ease-in-out infinite;
+      opacity: 0;
+    }
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.15; }
+      50% { opacity: 0.6; }
+    }
+
+    /* Exit fade */
+    @keyframes fadeOut {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* Replay button */
+    .replay-btn {
+      position: fixed;
+      bottom: 30px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      padding: 8px 24px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(0,0,0,0.6);
+      color: rgba(255,255,255,0.6);
+      font-size: 13px;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.3s;
+      opacity: 0;
+      animation: btnIn 0.5s 3s forwards;
+    }
+    .replay-btn:hover {
+      background: rgba(99,102,241,0.2);
+      border-color: rgba(99,102,241,0.4);
+      color: #fff;
+    }
+    @keyframes btnIn {
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="scene" id="scene">
+    <!-- Background stars -->
+    <div class="stars" id="stars"></div>
+
+    <!-- Concentric rings -->
+    <div class="ring"></div>
+    <div class="ring"></div>
+    <div class="ring"></div>
+    <div class="ring"></div>
+
+    <!-- Glass Core + Particle Swarm -->
+    <div class="orb-wrapper">
+      <div class="orb-glow"></div>
+      <div class="orb-glass"></div>
+      <div class="orb-core"></div>
+      <div class="particle-swarm" id="particleSwarm"></div>
+      <div class="orb-ring"></div>
+      <div class="orb-ring-2"></div>
+      <div class="orb-ring-3"></div>
+    </div>
+
+    <!-- 3D swarm micro particles (generated by JS) -->
+
+    <!-- Sparks -->
+    <div class="spark-container" id="sparks"></div>
+
+    <!-- Brand -->
+    <div class="brand">
+      <h1 id="brandText">SKU FOUNDRY</h1>
+      <div class="accent-line"></div>
+      <div class="tagline">AI Product Visualization</div>
+    </div>
+  </div>
+
+  <button class="replay-btn" onclick="resetIntro()">↻ Replay</button>
+
+  <script>
+    // Stars
+    const starsEl = document.getElementById('stars');
+    for (let i = 0; i < 120; i++) {
+      const star = document.createElement('div');
+      star.className = 'star';
+      star.style.left = Math.random() * 100 + '%';
+      star.style.top = Math.random() * 100 + '%';
+      star.style.setProperty('--dur', (2 + Math.random() * 4) + 's');
+      star.style.animationDelay = Math.random() * 5 + 's';
+      star.style.width = star.style.height = (1 + Math.random() * 2) + 'px';
+      starsEl.appendChild(star);
+    }
+
+    // Sparks
+    const sparksEl = document.getElementById('sparks');
+    for (let i = 0; i < 30; i++) {
+      const spark = document.createElement('div');
+      spark.className = 'spark';
+      const angle = Math.random() * Math.PI * 2;
+      const dist = 80 + Math.random() * 200;
+      spark.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+      spark.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+      spark.style.animationDelay = (0.5 + Math.random() * 1.0) + 's';
+      spark.style.background = ['#818cf8', '#6366f1', '#a855f7', '#c084fc', '#e9d5ff'][Math.floor(Math.random() * 5)];
+      spark.style.width = spark.style.height = (2 + Math.random() * 4) + 'px';
+      sparksEl.appendChild(spark);
+    }
+
+    // 3D Particle Swarm — particles on sphere surface
+    const swarmContainer = document.getElementById('particleSwarm');
+    const SWARM_COUNT = 90;
+    const SWARM_RADIUS = 130;
+    const swarmColors = ['#a5b4fc', '#818cf8', '#c084fc', '#6366f1', '#e0e7ff', '#9333ea'];
+
+    for (let i = 0; i < SWARM_COUNT; i++) {
+      const p = document.createElement('div');
+      p.className = 'p-particle';
+
+      // Spherical coordinates for even distribution
+      const phi = Math.acos(2 * Math.random() - 1);
+      const theta = Math.random() * Math.PI * 2;
+      const x = SWARM_RADIUS * Math.sin(phi) * Math.cos(theta);
+      const y = SWARM_RADIUS * Math.sin(phi) * Math.sin(theta);
+      const z = SWARM_RADIUS * Math.cos(phi);
+
+      const size = 1.5 + Math.random() * 2.5;
+      const color = swarmColors[Math.floor(Math.random() * swarmColors.length)];
+
+      p.style.width = size + 'px';
+      p.style.height = size + 'px';
+      p.style.background = color;
+      p.style.boxShadow = `0 0 ${3 + size}px ${color}`;
+      p.style.transform = `translate3d(${x}px, ${y}px, ${z}px)`;
+      p.style.animationDelay = (Math.random() * 2) + 's';
+      p.style.animationDuration = (1.5 + Math.random() * 1.5) + 's';
+
+      swarmContainer.appendChild(p);
+    }
+
+    // Wrap each char in a span for glow effect
+    const brandH1 = document.getElementById('brandText');
+    const text = brandH1.textContent;
+    brandH1.innerHTML = text.split('').map((c, i) =>
+      `<span class="char-glow" style="animation-delay:${i * 0.1}s">${c === ' ' ? '\u00A0' : c}</span>`
+    ).join('');
+
+    function rebuildSwarm() {
+      const container = document.getElementById('particleSwarm');
+      container.innerHTML = '';
+      for (let i = 0; i < SWARM_COUNT; i++) {
+        const p = document.createElement('div');
+        p.className = 'p-particle';
+        const phi = Math.acos(2 * Math.random() - 1);
+        const theta = Math.random() * Math.PI * 2;
+        const x = SWARM_RADIUS * Math.sin(phi) * Math.cos(theta);
+        const y = SWARM_RADIUS * Math.sin(phi) * Math.sin(theta);
+        const z = SWARM_RADIUS * Math.cos(phi);
+        const size = 1.5 + Math.random() * 2.5;
+        const color = swarmColors[Math.floor(Math.random() * swarmColors.length)];
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.background = color;
+        p.style.boxShadow = `0 0 ${3 + size}px ${color}`;
+        p.style.transform = `translate3d(${x}px, ${y}px, ${z}px)`;
+        p.style.animationDelay = (Math.random() * 2) + 's';
+        p.style.animationDuration = (1.5 + Math.random() * 1.5) + 's';
+        container.appendChild(p);
+      }
+    }
+
+    function resetIntro() {
+      const scene = document.getElementById('scene');
+      scene.style.animation = 'none';
+      scene.offsetHeight; // trigger reflow
+      scene.style.animation = 'fadeOut 0.8s ease-in 3.8s forwards';
+
+      rebuildSwarm();
+
+      // Reset all animated elements by re-creating them
+      const oldSparks = document.getElementById('sparks');
+      const newSparks = document.createElement('div');
+      newSparks.className = 'spark-container';
+      newSparks.id = 'sparks';
+      for (let i = 0; i < 30; i++) {
+        const spark = document.createElement('div');
+        spark.className = 'spark';
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 80 + Math.random() * 200;
+        spark.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+        spark.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+      spark.style.animationDelay = (0.5 + Math.random() * 0.8) + 's';
+        spark.style.background = ['#818cf8', '#6366f1', '#a855f7', '#c084fc', '#e9d5ff'][Math.floor(Math.random() * 5)];
+        spark.style.width = spark.style.height = (2 + Math.random() * 4) + 'px';
+        newSparks.appendChild(spark);
+      }
+      oldSparks.replaceWith(newSparks);
+
+      // Re-create brand text for animation replay
+      const oldBrand = document.querySelector('.brand');
+      const newBrand = oldBrand.cloneNode(true);
+      const brandH1new = newBrand.querySelector('h1');
+      brandH1new.innerHTML = text.split('').map((c, i) =>
+        `<span class="char-glow" style="animation-delay:${i * 0.1}s">${c === ' ' ? '\u00A0' : c}</span>`
+      ).join('');
+      oldBrand.replaceWith(newBrand);
+    }
+  </script>
+</body>
+</html>
